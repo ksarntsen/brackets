@@ -1,0 +1,363 @@
+<!-- display.html -->
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Turnering – Display</title>
+  <style>
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      background:#ffb703;
+      color:#2a1b00;
+    }
+    .wrap{
+      max-width:1900px;
+      margin:0 auto;
+      padding:18px 18px 28px 18px;
+    }
+    .head{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:12px;
+    }
+    .title{
+      font-size:44px;
+      font-weight:800;
+      line-height:1.05;
+      margin:0;
+    }
+    .updated{
+      font-size:18px;
+      color:#6a4a00;
+      font-weight:700;
+      white-space:nowrap;
+    }
+
+    .bracket{
+      display:flex;
+      gap:22px;
+      align-items:flex-start;
+    }
+    .col{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+    }
+
+    .match{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:18px;
+      position:relative;
+    }
+
+    .slot{
+      width:260px;
+      min-height:58px;
+      padding:10px 12px;
+      border-radius:16px;
+      background:#fff7db;
+      border:3px solid rgba(42,27,0,.22);
+      font-size:26px;
+      font-weight:800;
+      line-height:1.1;
+      display:flex;
+      align-items:center;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      box-shadow:0 14px 34px rgba(60,30,0,.16);
+    }
+    .slot.empty{
+      opacity:.55;
+      font-weight:700;
+    }
+    .slot.winPick{
+      border-color:rgba(31,143,58,.85);
+      box-shadow:0 0 0 5px rgba(31,143,58,.16) inset, 0 14px 34px rgba(60,30,0,.16);
+    }
+
+    /* Column spacing tuned for 16 players */
+    .col.qf  { padding-top:41px; }
+    .col.qf  .match{ margin-bottom:92px; }
+    .col.sf  { padding-top:142px; }
+    .col.sf  .match{ margin-bottom:238px; }
+    .col.f   { padding-top:335px; }
+    .col.f   .match{ margin-bottom:0; }
+    .col.win { padding-top:335px; }
+
+    .champ{
+      width:300px;
+      min-height:82px;
+      font-size:34px;
+      border-width:4px;
+    }
+
+    @keyframes moveIn {
+      0%   { transform: translateX(-28px); opacity:0; }
+      100% { transform: translateX(0); opacity:1; }
+    }
+    .moveIn{
+      animation: moveIn 450ms ease-out both;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div class="title">Turnering</div>
+      <div class="updated" id="updated">—</div>
+    </div>
+
+    <div id="bracket" class="bracket"></div>
+  </div>
+
+  <script>
+    (function(){
+      var API_GET = "/.netlify/functions/get-bracket";
+      var elBracket = document.getElementById("bracket");
+      var elUpdated = document.getElementById("updated");
+
+      var lastUpdated = null;
+
+      function sTrim(s){
+        return (s || "").replace(/^\s+|\s+$/g, "");
+      }
+
+      function xhrGet(url, cb){
+        var x = new XMLHttpRequest();
+        x.onreadystatechange = function(){
+          if (x.readyState !== 4) return;
+          var ok = (x.status >= 200 && x.status < 300);
+          var res = null;
+          try { res = JSON.parse(x.responseText || "{}"); } catch(e){ res = {}; }
+          cb(ok, res);
+        };
+        x.open("GET", url, true);
+        x.send(null);
+      }
+
+      function blankState(){
+        var i;
+        var p = [];
+        for (i=0;i<16;i++) p.push("");
+        return {
+          players: p,
+          winners: {
+            r16: [null,null,null,null,null,null,null,null],
+            qf: [null,null,null,null],
+            sf: [null,null],
+            f: [null]
+          },
+          updated_at: null
+        };
+      }
+
+      function safeState(raw){
+        var st = blankState();
+        if (!raw) return st;
+
+        if (raw.players && raw.players.length === 16) st.players = raw.players;
+        if (raw.winners) {
+          if (raw.winners.r16 && raw.winners.r16.length === 8) st.winners.r16 = raw.winners.r16;
+          if (raw.winners.qf  && raw.winners.qf.length  === 4) st.winners.qf  = raw.winners.qf;
+          if (raw.winners.sf  && raw.winners.sf.length  === 2) st.winners.sf  = raw.winners.sf;
+          if (raw.winners.f   && raw.winners.f.length   === 1) st.winners.f   = raw.winners.f;
+        }
+        st.updated_at = raw.updated_at || null;
+        return st;
+      }
+
+      function computeBracket(st){
+        var out = {
+          r16: { a:[], b:[], w:[], wn:[] },
+          qf:  { a:[], b:[], w:[], wn:[] },
+          sf:  { a:[], b:[], w:[], wn:[] },
+          f:   { a:[], b:[], w:[], wn:[] },
+          champ: ""
+        };
+
+        var i, a, b, w;
+
+        for (i=0;i<8;i++){
+          a = sTrim(st.players[i*2] || "");
+          b = sTrim(st.players[i*2+1] || "");
+          out.r16.a[i]=a; out.r16.b[i]=b;
+          w = st.winners.r16[i];
+          out.r16.w[i]=w;
+          out.r16.wn[i] = (w===0) ? a : ((w===1) ? b : "");
+        }
+
+        for (i=0;i<4;i++){
+          a = out.r16.wn[i*2] || "";
+          b = out.r16.wn[i*2+1] || "";
+          out.qf.a[i]=a; out.qf.b[i]=b;
+          w = st.winners.qf[i];
+          out.qf.w[i]=w;
+          out.qf.wn[i] = (w===0) ? a : ((w===1) ? b : "");
+        }
+
+        for (i=0;i<2;i++){
+          a = out.qf.wn[i*2] || "";
+          b = out.qf.wn[i*2+1] || "";
+          out.sf.a[i]=a; out.sf.b[i]=b;
+          w = st.winners.sf[i];
+          out.sf.w[i]=w;
+          out.sf.wn[i] = (w===0) ? a : ((w===1) ? b : "");
+        }
+
+        a = out.sf.wn[0] || "";
+        b = out.sf.wn[1] || "";
+        out.f.a[0]=a; out.f.b[0]=b;
+        w = st.winners.f[0];
+        out.f.w[0]=w;
+        out.f.wn[0] = (w===0) ? a : ((w===1) ? b : "");
+
+        out.champ = out.f.wn[0] || "";
+        return out;
+      }
+
+      function topmostDecidedRound(st){
+        var i;
+        for (i=0;i<1;i++){ if (st.winners.f[i] !== null) return "f"; }
+        for (i=0;i<2;i++){ if (st.winners.sf[i] !== null) return "sf"; }
+        for (i=0;i<4;i++){ if (st.winners.qf[i] !== null) return "qf"; }
+        for (i=0;i<8;i++){ if (st.winners.r16[i] !== null) return "r16"; }
+        return null;
+      }
+
+      function buildAnimTargets(st, br){
+        var top = topmostDecidedRound(st);
+        var targets = {
+          qf: {}, sf: {}, f: {}, win: {}
+        };
+        var i, m, side;
+
+        if (top === "r16") {
+          for (i=0;i<8;i++){
+            if (st.winners.r16[i] === null) continue;
+            if (!br.r16.a[i] || !br.r16.b[i]) continue;
+            m = Math.floor(i/2);
+            side = (i % 2); /* 0 -> left slot, 1 -> right slot */
+            targets.qf[m + "-" + side] = 1;
+          }
+        } else if (top === "qf") {
+          for (i=0;i<4;i++){
+            if (st.winners.qf[i] === null) continue;
+            if (!br.qf.a[i] || !br.qf.b[i]) continue;
+            m = Math.floor(i/2);
+            side = (i % 2);
+            targets.sf[m + "-" + side] = 1;
+          }
+        } else if (top === "sf") {
+          for (i=0;i<2;i++){
+            if (st.winners.sf[i] === null) continue;
+            if (!br.sf.a[i] || !br.sf.b[i]) continue;
+            m = 0;
+            side = (i % 2);
+            targets.f[m + "-" + side] = 1;
+          }
+        } else if (top === "f") {
+          if (st.winners.f[0] !== null && br.f.a[0] && br.f.b[0]) {
+            targets.win["champ"] = 1;
+          }
+        }
+        return targets;
+      }
+
+      function esc(s){
+        s = s || "";
+        return s
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#039;");
+      }
+
+      function mkSlot(text, isWinner, moveIn, isChamp){
+        var d = document.createElement("div");
+        d.className = "slot" + (isWinner ? " winPick" : "") + (moveIn ? " moveIn" : "");
+        if (!text) d.className += " empty";
+        if (isChamp) d.className += " champ";
+        d.innerHTML = esc(text || "—");
+        return d;
+      }
+
+      function mkMatch(a, b, winnerSide, moveA, moveB){
+        var m = document.createElement("div");
+        m.className = "match";
+        m.appendChild(mkSlot(a, winnerSide===0 && a, moveA, false));
+        m.appendChild(mkSlot(b, winnerSide===1 && b, moveB, false));
+        return m;
+      }
+
+      function render(st){
+        var br = computeBracket(st);
+        var anim = buildAnimTargets(st, br);
+
+        elBracket.innerHTML = "";
+
+        var colR16 = document.createElement("div");
+        colR16.className = "col r16";
+        var i;
+        for (i=0;i<8;i++){
+          colR16.appendChild(mkMatch(br.r16.a[i], br.r16.b[i], st.winners.r16[i], false, false));
+        }
+
+        var colQF = document.createElement("div");
+        colQF.className = "col qf";
+        for (i=0;i<4;i++){
+          var moveA = !!anim.qf[i+"-0"];
+          var moveB = !!anim.qf[i+"-1"];
+          colQF.appendChild(mkMatch(br.qf.a[i], br.qf.b[i], st.winners.qf[i], moveA, moveB));
+        }
+
+        var colSF = document.createElement("div");
+        colSF.className = "col sf";
+        for (i=0;i<2;i++){
+          var moveA2 = !!anim.sf[i+"-0"];
+          var moveB2 = !!anim.sf[i+"-1"];
+          colSF.appendChild(mkMatch(br.sf.a[i], br.sf.b[i], st.winners.sf[i], moveA2, moveB2));
+        }
+
+        var colF = document.createElement("div");
+        colF.className = "col f";
+        var moveFA = !!anim.f["0-0"];
+        var moveFB = !!anim.f["0-1"];
+        colF.appendChild(mkMatch(br.f.a[0], br.f.b[0], st.winners.f[0], moveFA, moveFB));
+
+        var colW = document.createElement("div");
+        colW.className = "col win";
+        colW.appendChild(mkSlot(br.champ, true, !!anim.win["champ"], true));
+
+        elBracket.appendChild(colR16);
+        elBracket.appendChild(colQF);
+        elBracket.appendChild(colSF);
+        elBracket.appendChild(colF);
+        elBracket.appendChild(colW);
+
+        elUpdated.innerHTML = st.updated_at ? ("Sist oppdatert: " + st.updated_at) : "—";
+      }
+
+      function tick(){
+        xhrGet(API_GET, function(ok, res){
+          if (!ok || !res || !res.ok) return;
+          var st = safeState(res.state);
+          if (st.updated_at && st.updated_at === lastUpdated) return;
+          lastUpdated = st.updated_at || null;
+          render(st);
+        });
+      }
+
+      tick();
+      setInterval(tick, 1500);
+    })();
+  </script>
+</body>
+</html>
