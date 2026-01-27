@@ -14,9 +14,9 @@
       overflow:hidden;
     }
     .wrap{
-      max-width:2000px;
+      max-width:2200px;
       margin:0 auto;
-      padding:18px 18px 18px 18px;
+      padding:18px;
     }
     .head{
       display:flex;
@@ -39,7 +39,6 @@
       white-space:nowrap;
     }
 
-    /* Stage: absolute layout so alignment is computed from actual centers */
     .stage{
       position:relative;
       width:100%;
@@ -49,39 +48,31 @@
       overflow:hidden;
     }
 
-    .col{
-      position:absolute;
-      top:0;
-      bottom:0;
-      width:310px; /* includes slot width + breathing room */
-    }
-
     .match{
       position:absolute;
-      left:0;
-      width:310px;
-      overflow:visible;
+      width:240px; /* JS keeps in sync */
+      pointer-events:none;
     }
 
     .when{
       position:absolute;
       top:-18px;
-      left:6px;
+      left:8px;
+      right:8px;
       font-size:14px;
       font-weight:800;
       color:rgba(244,244,246,.70);
       white-space:nowrap;
-      max-width:298px;
       overflow:hidden;
       text-overflow:ellipsis;
-      pointer-events:none;
+    }
+    .when.right{
+      text-align:right;
     }
 
     .slot{
       position:absolute;
-      left:0;
-      width:290px;
-      height:58px;              /* fixed for predictable centering */
+      height:58px; /* JS keeps in sync */
       padding:0 12px;
       border-radius:16px;
       background:#121216;
@@ -97,6 +88,10 @@
       box-shadow:0 16px 40px rgba(0,0,0,.45);
       color:#f4f4f6;
     }
+    .slot.right{
+      justify-content:flex-end;
+      text-align:right;
+    }
     .slot.empty{
       opacity:.55;
       font-weight:800;
@@ -107,21 +102,38 @@
       background:#0b0b0d;
     }
 
+    .outDot{
+      position:absolute;
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:rgba(214,31,38,.88);
+      box-shadow:0 0 0 5px rgba(214,31,38,.12);
+      opacity:.55;
+    }
+    .outDot.strong{
+      opacity:1;
+      box-shadow:0 0 0 6px rgba(214,31,38,.16), 0 14px 28px rgba(0,0,0,.35);
+    }
+
     .champ{
       position:absolute;
-      width:330px;
       height:78px;
-      font-size:34px;
       border-width:4px;
+      font-size:34px;
+      border-radius:18px;
     }
 
     @keyframes moveIn {
       0%   { transform: translateX(-28px); opacity:0; }
       100% { transform: translateX(0); opacity:1; }
     }
-    .moveIn{
-      animation: moveIn 450ms ease-out both;
+    @keyframes moveInR {
+      0%   { transform: translateX(28px); opacity:0; }
+      100% { transform: translateX(0); opacity:1; }
     }
+    .moveInL{ animation: moveIn 450ms ease-out both; }
+    .moveInR{ animation: moveInR 450ms ease-out both; }
   </style>
 </head>
 <body>
@@ -136,24 +148,46 @@
 
   <script>
     (function(){
-      var API_GET = "/.netlify/functions/get-bracket";
+      /* =========================
+         CONFIG (ES5-safe)
+         ========================= */
+      var CFG = {
+        API_GET: "/.netlify/functions/get-bracket",
+        POLL_MS: 1500,
+
+        /* Geometry */
+        COL_W: 240,
+        SLOT_W: 220,
+        SLOT_H: 58,
+        CHAMP_H: 78,
+
+        /* Horizontal step between rounds (auto-clamped to fit) */
+        STEP_DEFAULT: 260,
+
+        /* Vertical padding inside stage */
+        PAD_TOP: 20,
+        PAD_BOT: 20
+      };
 
       var elStage = document.getElementById("stage");
       var elUpdated = document.getElementById("updated");
 
       var lastUpdated = null;
       var lastState = null;
-
-      /* Layout constants */
-      var SLOT_H = 58;
-      var INNER_GAP = 10; /* gap between the two players inside a match */
-      var MATCH_H = (SLOT_H * 2) + INNER_GAP;
-
-      var COL_W = 310;     /* column box width */
-      var COL_GAP = 90;    /* horizontal spacing between columns */
+      var lastBracket = null; /* last computed bracket names, for animations */
 
       function sTrim(s){
         return (s || "").replace(/^\s+|\s+$/g, "");
+      }
+
+      function esc(s){
+        s = s || "";
+        return s
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#039;");
       }
 
       function xhrGet(url, cb){
@@ -174,18 +208,8 @@
         for (i=0;i<16;i++) p.push("");
         return {
           players: p,
-          winners: {
-            r16: [null,null,null,null,null,null,null,null],
-            qf:  [null,null,null,null],
-            sf:  [null,null],
-            f:   [null]
-          },
-          times: {
-            r16: ["","","","","","","",""],
-            qf:  ["","","",""],
-            sf:  ["",""],
-            f:   [""]
-          },
+          winners: { r16:[null,null,null,null,null,null,null,null], qf:[null,null,null,null], sf:[null,null], f:[null] },
+          times:   { r16:["","","","","","","",""],               qf:["","","",""],      sf:["",""],    f:[""] },
           updated_at: null
         };
       }
@@ -259,97 +283,7 @@
         return out;
       }
 
-      function topmostDecidedRound(st){
-        if (st.winners.f[0] !== null) return "f";
-        if (st.winners.sf[0] !== null || st.winners.sf[1] !== null) return "sf";
-        if (st.winners.qf[0] !== null || st.winners.qf[1] !== null || st.winners.qf[2] !== null || st.winners.qf[3] !== null) return "qf";
-        if (st.winners.r16[0] !== null || st.winners.r16[1] !== null || st.winners.r16[2] !== null || st.winners.r16[3] !== null ||
-            st.winners.r16[4] !== null || st.winners.r16[5] !== null || st.winners.r16[6] !== null || st.winners.r16[7] !== null) return "r16";
-        return null;
-      }
-
-      function buildAnimTargets(st, br){
-        var top = topmostDecidedRound(st);
-        var targets = { qf:{}, sf:{}, f:{}, win:{} };
-        var i, m, side;
-
-        if (top === "r16") {
-          for (i=0;i<8;i++){
-            if (st.winners.r16[i] === null) continue;
-            if (!br.r16.a[i] || !br.r16.b[i]) continue;
-            m = Math.floor(i/2);
-            side = (i % 2);
-            targets.qf[m + "-" + side] = 1;
-          }
-        } else if (top === "qf") {
-          for (i=0;i<4;i++){
-            if (st.winners.qf[i] === null) continue;
-            if (!br.qf.a[i] || !br.qf.b[i]) continue;
-            m = Math.floor(i/2);
-            side = (i % 2);
-            targets.sf[m + "-" + side] = 1;
-          }
-        } else if (top === "sf") {
-          for (i=0;i<2;i++){
-            if (st.winners.sf[i] === null) continue;
-            if (!br.sf.a[i] || !br.sf.b[i]) continue;
-            side = (i % 2);
-            targets.f["0-" + side] = 1;
-          }
-        } else if (top === "f") {
-          if (st.winners.f[0] !== null && br.f.a[0] && br.f.b[0]) targets.win["champ"] = 1;
-        }
-        return targets;
-      }
-
-      function esc(s){
-        s = s || "";
-        return s
-          .replace(/&/g,"&amp;")
-          .replace(/</g,"&lt;")
-          .replace(/>/g,"&gt;")
-          .replace(/"/g,"&quot;")
-          .replace(/'/g,"&#039;");
-      }
-
-      function mkWhen(text){
-        var t = sTrim(text || "");
-        if (!t) return null;
-        var d = document.createElement("div");
-        d.className = "when";
-        d.innerHTML = esc(t);
-        return d;
-      }
-
-      function mkSlot(text, isWinner, moveIn){
-        var d = document.createElement("div");
-        d.className = "slot" + (isWinner ? " winPick" : "") + (moveIn ? " moveIn" : "");
-        if (!text) d.className += " empty";
-        d.innerHTML = esc(text || "—");
-        return d;
-      }
-
-      function mkMatch(a, b, winnerSide, moveA, moveB, whenText){
-        var m = document.createElement("div");
-        m.className = "match";
-
-        var w = mkWhen(whenText);
-        if (w) m.appendChild(w);
-
-        var sA = mkSlot(a, (winnerSide===0 && a), moveA);
-        var sB = mkSlot(b, (winnerSide===1 && b), moveB);
-
-        sA.style.top = "0px";
-        sB.style.top = (SLOT_H + INNER_GAP) + "px";
-
-        m.appendChild(sA);
-        m.appendChild(sB);
-
-        return m;
-      }
-
       function computeStageHeight(){
-        /* Fill the viewport under the header, but keep a floor. */
         var wrap = document.getElementsByClassName("wrap")[0];
         var head = document.getElementsByClassName("head")[0];
 
@@ -358,197 +292,339 @@
 
         if (wrap && wrap.offsetTop) used += wrap.offsetTop;
         if (head && head.offsetHeight) used += head.offsetHeight;
-        used += 26; /* padding/margins */
+        used += 26;
 
         var stageH = h - used;
         if (stageH < 520) stageH = 520;
         return stageH;
       }
 
-      function layoutRoundTops(stageH){
-        /* Place r16 evenly. Later rounds are centered from previous centers. */
-        var r16Top = [];
-        var r16Center = [];
-        var qfTop = [];
-        var qfCenter = [];
-        var sfTop = [];
-        var sfCenter = [];
-        var fTop = [];
-        var fCenter = [];
+      function seedPlayerCenters(stageH){
+        var centers = [];
+        var padTop = CFG.PAD_TOP;
+        var padBot = CFG.PAD_BOT;
+        var usable = stageH - padTop - padBot;
+        if (usable < 200) usable = 200;
 
-        var i;
-
-        var baseSpacing = (stageH - (8 * MATCH_H)) / 7;
-        if (baseSpacing < 6) baseSpacing = 6;
-
-        /* If the stage is too small even with minimal spacing, allow overlap-free squeeze by reducing spacing. */
-        if ((8 * MATCH_H) + (7 * baseSpacing) > stageH) {
-          baseSpacing = Math.max(0, (stageH - (8 * MATCH_H)) / 7);
+        var step = usable / 8;
+        var j;
+        for (j=0;j<8;j++){
+          centers[j] = padTop + (j + 0.5) * step;
         }
-        if (baseSpacing < 0) baseSpacing = 0;
-
-        for (i=0;i<8;i++){
-          r16Top[i] = i * (MATCH_H + baseSpacing);
-          r16Center[i] = r16Top[i] + (MATCH_H / 2);
-        }
-
-        for (i=0;i<4;i++){
-          qfCenter[i] = (r16Center[i*2] + r16Center[i*2+1]) / 2;
-          qfTop[i] = qfCenter[i] - (MATCH_H / 2);
-        }
-
-        for (i=0;i<2;i++){
-          sfCenter[i] = (qfCenter[i*2] + qfCenter[i*2+1]) / 2;
-          sfTop[i] = sfCenter[i] - (MATCH_H / 2);
-        }
-
-        fCenter[0] = (sfCenter[0] + sfCenter[1]) / 2;
-        fTop[0] = fCenter[0] - (MATCH_H / 2);
-
-        return {
-          r16Top: r16Top,
-          qfTop: qfTop,
-          sfTop: sfTop,
-          fTop: fTop,
-          fCenter: fCenter
-        };
+        return centers;
       }
 
-      function render(st){
-        var br = computeBracket(st);
-        var anim = buildAnimTargets(st, br);
+      function computeXS(stageW){
+        var colW = CFG.COL_W;
 
-        /* Stage sizing */
+        var centerX = Math.floor((stageW - colW) / 2);
+
+        var maxStep = Math.floor((stageW - colW) / 6); /* 3 steps each side */
+        if (maxStep < 60) maxStep = 60;
+
+        var step = CFG.STEP_DEFAULT;
+        if (step > maxStep) step = maxStep;
+
+        var xs = {
+          left:  { r16: centerX - 3*step, qf: centerX - 2*step, sf: centerX - step },
+          right: { r16: centerX + 3*step, qf: centerX + 2*step, sf: centerX + step },
+          final: centerX
+        };
+
+        return { xs: xs, step: step };
+      }
+
+      function mkSlot(text, isWinner, isRight, animClass){
+        var d = document.createElement("div");
+        var cls = "slot";
+        if (isRight) cls += " right";
+        if (!text) cls += " empty";
+        if (isWinner) cls += " winPick";
+        if (animClass) cls += " " + animClass;
+        d.className = cls;
+        d.innerHTML = esc(text || "—");
+        d.style.width = CFG.SLOT_W + "px";
+        d.style.height = CFG.SLOT_H + "px";
+        return d;
+      }
+
+      function mkWhen(text, isRight){
+        var t = sTrim(text || "");
+        if (!t) return null;
+        var d = document.createElement("div");
+        d.className = "when" + (isRight ? " right" : "");
+        d.innerHTML = esc(t);
+        return d;
+      }
+
+      function mkDot(x, y, strong){
+        var d = document.createElement("div");
+        d.className = "outDot" + (strong ? " strong" : "");
+        d.style.left = x + "px";
+        d.style.top = y + "px";
+        return d;
+      }
+
+      function renderMatch(stage, x, yA, yB, nameA, nameB, winnerSide, whenText, isRight, z, animA, animB){
+        var colW = CFG.COL_W;
+        var slotW = CFG.SLOT_W;
+        var slotH = CFG.SLOT_H;
+
+        var yMin = (yA < yB) ? yA : yB;
+        var yMax = (yA > yB) ? yA : yB;
+
+        var matchTop = Math.floor(yMin - slotH/2);
+        var matchH = Math.ceil((yMax + slotH/2) - matchTop);
+
+        var m = document.createElement("div");
+        m.className = "match";
+        m.style.left = x + "px";
+        m.style.top = matchTop + "px";
+        m.style.height = matchH + "px";
+        m.style.width = colW + "px";
+        m.style.zIndex = String(z);
+
+        var w = mkWhen(whenText, isRight);
+        if (w) m.appendChild(w);
+
+        var slotLeft = Math.floor((colW - slotW) / 2);
+
+        var isWinA = (winnerSide === 0) && !!nameA;
+        var isWinB = (winnerSide === 1) && !!nameB;
+
+        var a = mkSlot(nameA, isWinA, isRight, animA);
+        var b = mkSlot(nameB, isWinB, isRight, animB);
+
+        a.style.left = slotLeft + "px";
+        b.style.left = slotLeft + "px";
+
+        a.style.top = Math.floor((yA - slotH/2) - matchTop) + "px";
+        b.style.top = Math.floor((yB - slotH/2) - matchTop) + "px";
+
+        m.appendChild(a);
+        m.appendChild(b);
+
+        /* output marker (visual anchor for where the winner "lands" in next column) */
+        var outY = Math.floor(((yA + yB)/2) - matchTop - 5);
+        var outX = isRight ? 6 : (colW - 16);
+        m.appendChild(mkDot(outX, outY, (winnerSide !== null)));
+
+        stage.appendChild(m);
+      }
+
+      function animFlag(prev, now){
+        if (!now) return false;
+        if (!prev) return true;
+        return prev !== now;
+      }
+
+      function buildAnim(prevBr, br){
+        var a = {
+          qfA:[false,false,false,false], qfB:[false,false,false,false],
+          sfA:[false,false], sfB:[false,false],
+          fA:false, fB:false,
+          champ:false
+        };
+        if (!prevBr) return a;
+
+        var i;
+        for (i=0;i<4;i++){
+          a.qfA[i] = animFlag(prevBr.qf.a[i], br.qf.a[i]);
+          a.qfB[i] = animFlag(prevBr.qf.b[i], br.qf.b[i]);
+        }
+        for (i=0;i<2;i++){
+          a.sfA[i] = animFlag(prevBr.sf.a[i], br.sf.a[i]);
+          a.sfB[i] = animFlag(prevBr.sf.b[i], br.sf.b[i]);
+        }
+        a.fA = animFlag(prevBr.f.a[0], br.f.a[0]);
+        a.fB = animFlag(prevBr.f.b[0], br.f.b[0]);
+        a.champ = animFlag(prevBr.champ, br.champ);
+        return a;
+      }
+
+      function render(st, disableAnim){
+        var br = computeBracket(st);
         var stageH = computeStageHeight();
         elStage.style.height = stageH + "px";
 
-        /* Build columns */
-        elStage.innerHTML = "";
+        /* Must read width after height applied (older browsers sometimes lag) */
+        var stageW = elStage.clientWidth;
+        if (!stageW || stageW < 800) stageW = 1600;
 
-        var colR16 = document.createElement("div");
-        colR16.className = "col";
-        colR16.style.left = "0px";
+        /* Compute X positions (symmetrical, converging to center) */
+        var X = computeXS(stageW).xs;
 
-        var colQF = document.createElement("div");
-        colQF.className = "col";
-        colQF.style.left = (COL_W + COL_GAP) + "px";
+        /* Seed centers for 8 players per side */
+        var seed = seedPlayerCenters(stageH);
 
-        var colSF = document.createElement("div");
-        colSF.className = "col";
-        colSF.style.left = (2*(COL_W + COL_GAP)) + "px";
-
-        var colF = document.createElement("div");
-        colF.className = "col";
-        colF.style.left = (3*(COL_W + COL_GAP)) + "px";
-
-        var colW = document.createElement("div");
-        colW.className = "col";
-        colW.style.left = (4*(COL_W + COL_GAP)) + "px";
-        colW.style.width = "360px";
-
-        elStage.appendChild(colR16);
-        elStage.appendChild(colQF);
-        elStage.appendChild(colSF);
-        elStage.appendChild(colF);
-        elStage.appendChild(colW);
-
-        /* Create matches */
-        var r16Els = [];
-        var qfEls = [];
-        var sfEls = [];
-        var fEls = [];
+        /* Compute output centers (layout-only, independent of winners) */
+        var r16OutL = [];
+        var r16OutR = [];
+        var qfOutL = [];
+        var qfOutR = [];
+        var sfOutL = 0;
+        var sfOutR = 0;
+        var finalOut = 0;
 
         var i;
 
-        for (i=0;i<8;i++){
-          var m16 = mkMatch(
-            br.r16.a[i], br.r16.b[i], st.winners.r16[i],
-            false, false,
-            (st.times && st.times.r16) ? st.times.r16[i] : ""
-          );
-          r16Els.push(m16);
-          colR16.appendChild(m16);
-        }
-
         for (i=0;i<4;i++){
-          var mq = mkMatch(
-            br.qf.a[i], br.qf.b[i], st.winners.qf[i],
-            !!anim.qf[i+"-0"], !!anim.qf[i+"-1"],
-            (st.times && st.times.qf) ? st.times.qf[i] : ""
+          r16OutL[i] = (seed[i*2] + seed[i*2+1]) / 2;
+          r16OutR[i] = (seed[i*2] + seed[i*2+1]) / 2;
+        }
+        for (i=0;i<2;i++){
+          qfOutL[i] = (r16OutL[i*2] + r16OutL[i*2+1]) / 2;
+          qfOutR[i] = (r16OutR[i*2] + r16OutR[i*2+1]) / 2;
+        }
+        sfOutL = (qfOutL[0] + qfOutL[1]) / 2;
+        sfOutR = (qfOutR[0] + qfOutR[1]) / 2;
+        finalOut = (sfOutL + sfOutR) / 2;
+
+        /* Anim targets */
+        var anim = disableAnim ? null : buildAnim(lastBracket, br);
+
+        /* Clear and render */
+        elStage.innerHTML = "";
+
+        /* LEFT side: r16(0..3), qf(0..1), sf(0) */
+        for (i=0;i<4;i++){
+          renderMatch(
+            elStage,
+            X.left.r16,
+            seed[i*2], seed[i*2+1],
+            br.r16.a[i], br.r16.b[i],
+            st.winners.r16[i],
+            st.times && st.times.r16 ? st.times.r16[i] : "",
+            false,
+            10,
+            null, null
           );
-          qfEls.push(mq);
-          colQF.appendChild(mq);
         }
 
         for (i=0;i<2;i++){
-          var ms = mkMatch(
-            br.sf.a[i], br.sf.b[i], st.winners.sf[i],
-            !!anim.sf[i+"-0"], !!anim.sf[i+"-1"],
-            (st.times && st.times.sf) ? st.times.sf[i] : ""
+          renderMatch(
+            elStage,
+            X.left.qf,
+            r16OutL[i*2], r16OutL[i*2+1],
+            br.qf.a[i], br.qf.b[i],
+            st.winners.qf[i],
+            st.times && st.times.qf ? st.times.qf[i] : "",
+            false,
+            20,
+            (anim && anim.qfA[i]) ? "moveInL" : null,
+            (anim && anim.qfB[i]) ? "moveInL" : null
           );
-          sfEls.push(ms);
-          colSF.appendChild(ms);
         }
 
-        var mf = mkMatch(
-          br.f.a[0], br.f.b[0], st.winners.f[0],
-          !!anim.f["0-0"], !!anim.f["0-1"],
-          (st.times && st.times.f) ? st.times.f[0] : ""
+        renderMatch(
+          elStage,
+          X.left.sf,
+          qfOutL[0], qfOutL[1],
+          br.sf.a[0], br.sf.b[0],
+          st.winners.sf[0],
+          st.times && st.times.sf ? st.times.sf[0] : "",
+          false,
+          30,
+          (anim && anim.sfA[0]) ? "moveInL" : null,
+          (anim && anim.sfB[0]) ? "moveInL" : null
         );
-        fEls.push(mf);
-        colF.appendChild(mf);
 
-        /* Champion */
-        var champ = document.createElement("div");
-        champ.className = "slot champ" + (br.champ ? " winPick" : "") + (!!anim.win["champ"] ? " moveIn" : "");
-        if (!br.champ) champ.className += " empty";
-        champ.innerHTML = esc(br.champ || "—");
-        colW.appendChild(champ);
-
-        /* Apply computed vertical positions */
-        var L = layoutRoundTops(stageH);
-
-        for (i=0;i<8;i++){
-          r16Els[i].style.top = L.r16Top[i] + "px";
-          r16Els[i].style.height = MATCH_H + "px";
-        }
+        /* RIGHT side: r16(4..7), qf(2..3), sf(1)  (mirrored direction) */
         for (i=0;i<4;i++){
-          qfEls[i].style.top = L.qfTop[i] + "px";
-          qfEls[i].style.height = MATCH_H + "px";
+          renderMatch(
+            elStage,
+            X.right.r16,
+            seed[i*2], seed[i*2+1],
+            br.r16.a[i+4], br.r16.b[i+4],
+            st.winners.r16[i+4],
+            st.times && st.times.r16 ? st.times.r16[i+4] : "",
+            true,
+            10,
+            null, null
+          );
         }
-        for (i=0;i<2;i++){
-          sfEls[i].style.top = L.sfTop[i] + "px";
-          sfEls[i].style.height = MATCH_H + "px";
-        }
-        fEls[0].style.top = L.fTop[0] + "px";
-        fEls[0].style.height = MATCH_H + "px";
 
-        /* Champion centered on final match center */
-        var champH = 78;
-        champ.style.top = (L.fCenter[0] - (champH / 2)) + "px";
-        champ.style.left = "0px";
+        for (i=0;i<2;i++){
+          var qfIdx = i + 2;
+          renderMatch(
+            elStage,
+            X.right.qf,
+            r16OutR[i*2], r16OutR[i*2+1],
+            br.qf.a[qfIdx], br.qf.b[qfIdx],
+            st.winners.qf[qfIdx],
+            st.times && st.times.qf ? st.times.qf[qfIdx] : "",
+            true,
+            20,
+            (anim && anim.qfA[qfIdx]) ? "moveInR" : null,
+            (anim && anim.qfB[qfIdx]) ? "moveInR" : null
+          );
+        }
+
+        renderMatch(
+          elStage,
+          X.right.sf,
+          qfOutR[0], qfOutR[1],
+          br.sf.a[1], br.sf.b[1],
+          st.winners.sf[1],
+          st.times && st.times.sf ? st.times.sf[1] : "",
+          true,
+          30,
+          (anim && anim.sfA[1]) ? "moveInR" : null,
+          (anim && anim.sfB[1]) ? "moveInR" : null
+        );
+
+        /* FINAL (center) */
+        renderMatch(
+          elStage,
+          X.final,
+          sfOutL, sfOutR,
+          br.f.a[0], br.f.b[0],
+          st.winners.f[0],
+          st.times && st.times.f ? st.times.f[0] : "",
+          false,
+          40,
+          (anim && anim.fA) ? "moveInL" : null,
+          (anim && anim.fB) ? "moveInR" : null
+        );
+
+        /* CHAMPION (centered on final output) */
+        var champ = document.createElement("div");
+        champ.className = "slot champ" + (br.champ ? " winPick" : "") + (br.champ ? "" : " empty");
+        if (anim && anim.champ) champ.className += " moveInL";
+
+        champ.innerHTML = esc(br.champ || "—");
+        champ.style.width = (CFG.COL_W) + "px";
+        champ.style.height = CFG.CHAMP_H + "px";
+        champ.style.left = X.final + "px";
+        champ.style.top = Math.floor(finalOut - CFG.CHAMP_H/2) + "px";
+        champ.style.zIndex = "50";
+        elStage.appendChild(champ);
 
         elUpdated.innerHTML = st.updated_at ? ("Sist oppdatert: " + st.updated_at) : "—";
+
+        lastBracket = br;
       }
 
       function tick(){
-        xhrGet(API_GET, function(ok, res){
+        xhrGet(CFG.API_GET, function(ok, res){
           if (!ok || !res || !res.ok) return;
           var st = safeState(res.state);
+
           if (st.updated_at && st.updated_at === lastUpdated) return;
-          lastUpdated = st.updated_at || null;
+
+          lastUpdated = st.updated_at || ("" + new Date().getTime());
           lastState = st;
-          render(st);
+          render(st, false);
         });
       }
 
       function onResize(){
         if (!lastState) return;
-        render(lastState);
+        render(lastState, true);
       }
 
       tick();
-      setInterval(tick, 1500);
+      setInterval(tick, CFG.POLL_MS);
 
       if (window.addEventListener) window.addEventListener("resize", onResize, false);
       else if (window.attachEvent) window.attachEvent("onresize", onResize);
