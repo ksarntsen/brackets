@@ -43,8 +43,8 @@
       position:relative;
       width:100%;
       border-radius:16px;
-      background:rgba(255,255,255,.03); /* slightly brighter panel */
-      border:2px solid rgba(214,31,38,.22); /* keep red border */
+      background:rgba(255,255,255,.03);
+      border:2px solid rgba(214,31,38,.22);
       overflow:hidden;
     }
 
@@ -76,7 +76,7 @@
       padding:0 12px;
       border-radius:16px;
       background:#2a0a0d; /* very dark red bubble */
-      border:3px solid rgba(214,31,38,.45); /* keep red borders */
+      border:3px solid rgba(214,31,38,.45); /* red borders */
       font-size:26px;
       font-weight:900;
       line-height:1;
@@ -99,7 +99,7 @@
     .slot.winPick{
       border-color:rgba(214,31,38,.98);
       box-shadow:0 0 0 5px rgba(214,31,38,.18) inset, 0 16px 40px rgba(0,0,0,.40);
-      background:#1f070a; /* a touch darker for winners */
+      background:#1f070a;
     }
 
     .outDot{
@@ -114,6 +114,32 @@
     .outDot.strong{
       opacity:1;
       box-shadow:0 0 0 6px rgba(214,31,38,.18), 0 14px 28px rgba(0,0,0,.35);
+    }
+
+    /* Decided match: fade + grey, no red */
+    .match.decided{
+      opacity:.55;
+    }
+    .match.decided .slot{
+      background:rgba(255,255,255,.06);
+      border-color:rgba(210,210,220,.22);
+      box-shadow:0 12px 28px rgba(0,0,0,.28);
+      color:rgba(244,244,246,.72);
+    }
+    .match.decided .slot.winPick{
+      background:rgba(255,255,255,.06);
+      border-color:rgba(210,210,220,.22);
+      box-shadow:0 12px 28px rgba(0,0,0,.28);
+    }
+    .match.decided .outDot{
+      background:rgba(210,210,220,.55);
+      box-shadow:0 0 0 5px rgba(210,210,220,.12);
+      opacity:.75;
+    }
+    .match.decided .outDot.strong{
+      background:rgba(210,210,220,.75);
+      box-shadow:0 0 0 6px rgba(210,210,220,.14), 0 14px 28px rgba(0,0,0,.25);
+      opacity:1;
     }
 
     .champ{
@@ -160,7 +186,8 @@
         STEP_DEFAULT: 260,
 
         PAD_TOP: 20,
-        PAD_BOT: 20
+        PAD_BOT: 20,
+        PAD_SIDE: 22
       };
 
       var elStage = document.getElementById("stage");
@@ -311,10 +338,23 @@
       function computeXS(stageW){
         var colW = CFG.COL_W;
 
-        var centerX = Math.floor((stageW - colW) / 2);
+        var minX = CFG.PAD_SIDE;
+        var maxX = stageW - colW - CFG.PAD_SIDE;
+        if (maxX < minX) {
+          minX = 0;
+          maxX = stageW - colW;
+          if (maxX < 0) maxX = 0;
+        }
 
-        var maxStep = Math.floor((stageW - colW) / 6);
-        if (maxStep < 60) maxStep = 60;
+        var centerX = Math.floor((minX + maxX) / 2);
+
+        var availL = centerX - minX;
+        var availR = maxX - centerX;
+        if (availL < 0) availL = 0;
+        if (availR < 0) availR = 0;
+
+        var maxStep = Math.floor((availL < availR ? availL : availR) / 3);
+        if (maxStep < 10) maxStep = 10;
 
         var step = CFG.STEP_DEFAULT;
         if (step > maxStep) step = maxStep;
@@ -324,6 +364,10 @@
           right: { r16: centerX + 3*step, qf: centerX + 2*step, sf: centerX + step },
           final: centerX
         };
+
+        /* Final clamp (paranoia) */
+        if (xs.left.r16 < minX) xs.left.r16 = minX;
+        if (xs.right.r16 > maxX) xs.right.r16 = maxX;
 
         return { xs: xs, step: step };
       }
@@ -364,6 +408,8 @@
         var slotW = CFG.SLOT_W;
         var slotH = CFG.SLOT_H;
 
+        var decided = (winnerSide !== null);
+
         var yMin = (yA < yB) ? yA : yB;
         var yMax = (yA > yB) ? yA : yB;
 
@@ -371,20 +417,23 @@
         var matchH = Math.ceil((yMax + slotH/2) - matchTop);
 
         var m = document.createElement("div");
-        m.className = "match";
+        m.className = "match" + (decided ? " decided" : "");
         m.style.left = x + "px";
         m.style.top = matchTop + "px";
         m.style.height = matchH + "px";
         m.style.width = colW + "px";
         m.style.zIndex = String(z);
 
-        var w = mkWhen(whenText, isRight);
-        if (w) m.appendChild(w);
+        /* Hide time when decided */
+        if (!decided) {
+          var w = mkWhen(whenText, isRight);
+          if (w) m.appendChild(w);
+        }
 
         var slotLeft = Math.floor((colW - slotW) / 2);
 
-        var isWinA = (winnerSide === 0) && !!nameA;
-        var isWinB = (winnerSide === 1) && !!nameB;
+        var isWinA = (!decided) ? ((winnerSide === 0) && !!nameA) : false;
+        var isWinB = (!decided) ? ((winnerSide === 1) && !!nameB) : false;
 
         var a = mkSlot(nameA, isWinA, isRight, animA);
         var b = mkSlot(nameB, isWinB, isRight, animB);
