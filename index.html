@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!doctype html>
 <html lang="no">
 <head>
@@ -9,11 +8,11 @@
     body{
       margin:0;
       font-family: Arial, sans-serif;
-      background:#ffb703;
-      color:#2a1b00;
+      background:#0b0b0d;
+      color:#f4f4f6;
     }
     .wrap{
-      max-width:1400px;
+      max-width:1500px;
       margin:0 auto;
       padding:18px;
     }
@@ -28,21 +27,24 @@
       margin:0;
       font-size:34px;
       line-height:1.1;
+      letter-spacing:.2px;
     }
     .btn{
       display:inline-block;
-      background:#2a1b00;
-      color:#fff7db;
+      background:#d61f26;
+      color:#fff;
       text-decoration:none;
       padding:12px 16px;
       border-radius:12px;
-      font-weight:700;
+      font-weight:800;
       font-size:18px;
       border:0;
       cursor:pointer;
     }
     .btn.secondary{
-      background:#6a4a00;
+      background:#1b1b1f;
+      border:2px solid rgba(214,31,38,.55);
+      padding:10px 14px;
     }
     .grid{
       display:flex;
@@ -51,13 +53,13 @@
       align-items:flex-start;
     }
     .card{
-      background:#fff7db;
-      border:3px solid rgba(42,27,0,.22);
+      background:#121216;
+      border:2px solid rgba(214,31,38,.35);
       border-radius:16px;
-      box-shadow:0 16px 40px rgba(60,30,0,.18);
+      box-shadow:0 18px 50px rgba(0,0,0,.45);
       padding:14px;
-      flex:1 1 520px;
-      min-width:320px;
+      flex:1 1 560px;
+      min-width:340px;
     }
     .card h2{
       margin:0 0 10px 0;
@@ -67,10 +69,11 @@
       margin:10px 0 14px 0;
       padding:10px 12px;
       border-radius:12px;
-      background:rgba(255,247,219,.7);
-      border:2px solid rgba(42,27,0,.18);
+      background:#121216;
+      border:2px solid rgba(214,31,38,.25);
       font-size:18px;
       min-height:22px;
+      color:#f4f4f6;
     }
 
     .players{
@@ -88,19 +91,19 @@
     }
     .pRow label{
       width:46px;
-      font-weight:700;
+      font-weight:800;
       font-size:18px;
-      color:#6a4a00;
+      color:rgba(244,244,246,.72);
     }
     .pRow input{
       flex:1;
       font-size:18px;
       padding:10px 10px;
       border-radius:12px;
-      border:2px solid rgba(42,27,0,.22);
+      border:2px solid rgba(214,31,38,.25);
       outline:none;
-      background:#fff;
-      color:#2a1b00;
+      background:#0f0f12;
+      color:#f4f4f6;
     }
 
     .actions{
@@ -112,8 +115,9 @@
 
     .roundTitle{
       font-size:22px;
-      font-weight:700;
+      font-weight:900;
       margin:14px 0 8px 0;
+      color:#fff;
     }
 
     .matchRow{
@@ -123,56 +127,70 @@
       flex-wrap:wrap;
       padding:10px;
       border-radius:14px;
-      border:2px solid rgba(42,27,0,.16);
-      background:rgba(255,255,255,.55);
+      border:2px solid rgba(214,31,38,.22);
+      background:#0f0f12;
       margin-bottom:10px;
     }
     .matchLabel{
-      width:86px;
-      font-weight:700;
+      width:92px;
+      font-weight:900;
       font-size:18px;
-      color:#6a4a00;
+      color:rgba(244,244,246,.72);
       display:flex;
       align-items:center;
     }
 
+    .timeBox{
+      width:220px;
+      max-width:100%;
+      border-radius:12px;
+      border:2px solid rgba(214,31,38,.22);
+      background:#0b0b0d;
+      color:#f4f4f6;
+      font-size:16px;
+      padding:10px 10px;
+      outline:none;
+    }
+
     .pickBtn{
-      border:2px solid rgba(42,27,0,.22);
-      background:#fff;
+      border:2px solid rgba(214,31,38,.22);
+      background:#121216;
       border-radius:14px;
       padding:10px 12px;
       font-size:20px;
-      font-weight:700;
+      font-weight:900;
       cursor:pointer;
-      min-width:240px;
+      min-width:260px;
       text-align:left;
-      color:#2a1b00;
+      color:#f4f4f6;
     }
     .pickBtn.disabled{
       opacity:.45;
       cursor:default;
     }
     .pickBtn.winner{
-      border-color:rgba(31,143,58,.8);
-      box-shadow:0 0 0 4px rgba(31,143,58,.16) inset;
+      border-color:rgba(214,31,38,.9);
+      box-shadow:0 0 0 4px rgba(214,31,38,.18) inset;
+      background:#0b0b0d;
     }
 
     .miniBtn{
-      border:2px solid rgba(42,27,0,.22);
-      background:#fff;
+      border:2px solid rgba(214,31,38,.22);
+      background:#121216;
       border-radius:12px;
       padding:10px 12px;
       font-size:18px;
-      font-weight:700;
+      font-weight:900;
       cursor:pointer;
-      color:#2a1b00;
+      color:#f4f4f6;
     }
     .miniBtn.danger{
-      border-color:rgba(214,40,40,.55);
+      border-color:rgba(214,31,38,.75);
+      background:#0b0b0d;
     }
 
     .note{
-      color:#6a4a00;
+      color:rgba(244,244,246,.68);
       font-size:16px;
       margin-top:6px;
       line-height:1.35;
@@ -198,17 +216,13 @@
           <button id="btnSavePlayers" class="btn">Lagre spillere (nullstiller vinnere)</button>
           <button id="btnReload" class="btn secondary">Oppdater fra DB</button>
         </div>
-        <div class="note">
-          Rekkefølge bestemmer matchups: 1 vs 2, 3 vs 4, …, 15 vs 16.
-        </div>
+        <div class="note">Rekkefølge bestemmer matchups: 1 vs 2, 3 vs 4, …, 15 vs 16.</div>
       </div>
 
       <div class="card">
-        <h2>Vinnere</h2>
+        <h2>Kamper</h2>
         <div id="matches"></div>
-        <div class="note">
-          Vinner i en runde låser inn videre deltakere. Endrer du en vinner i en tidligere runde, blir senere runder automatisk tømt.
-        </div>
+        <div class="note">Dato/tid lagres per kamp og vises på display rett over matchupen.</div>
       </div>
     </div>
   </div>
@@ -219,7 +233,8 @@
         get: "/.netlify/functions/get-bracket",
         savePlayers: "/.netlify/functions/save-players",
         setWinner: "/.netlify/functions/set-winner",
-        clearWinner: "/.netlify/functions/clear-winner"
+        clearWinner: "/.netlify/functions/clear-winner",
+        setMatchTime: "/.netlify/functions/set-matchtime"
       };
 
       var els = {
@@ -257,8 +272,7 @@
       }
 
       function blankState(){
-        var i;
-        var p = [];
+        var i, p = [];
         for (i=0;i<16;i++) p.push("");
         return {
           players: p,
@@ -268,6 +282,12 @@
             sf: [null,null],
             f: [null]
           },
+          times: {
+            r16: ["","","","","","","",""],
+            qf:  ["","","",""],
+            sf:  ["",""],
+            f:   [""]
+          },
           updated_at: null
         };
       }
@@ -276,15 +296,22 @@
         var st = blankState();
         if (!raw) return st;
 
-        if (raw.players && raw.players.length === 16) {
-          st.players = raw.players;
-        }
+        if (raw.players && raw.players.length === 16) st.players = raw.players;
+
         if (raw.winners) {
           st.winners.r16 = (raw.winners.r16 && raw.winners.r16.length === 8) ? raw.winners.r16 : st.winners.r16;
           st.winners.qf  = (raw.winners.qf  && raw.winners.qf.length  === 4) ? raw.winners.qf  : st.winners.qf;
           st.winners.sf  = (raw.winners.sf  && raw.winners.sf.length  === 2) ? raw.winners.sf  : st.winners.sf;
           st.winners.f   = (raw.winners.f   && raw.winners.f.length   === 1) ? raw.winners.f   : st.winners.f;
         }
+
+        if (raw.times) {
+          st.times.r16 = (raw.times.r16 && raw.times.r16.length === 8) ? raw.times.r16 : st.times.r16;
+          st.times.qf  = (raw.times.qf  && raw.times.qf.length  === 4) ? raw.times.qf  : st.times.qf;
+          st.times.sf  = (raw.times.sf  && raw.times.sf.length  === 2) ? raw.times.sf  : st.times.sf;
+          st.times.f   = (raw.times.f   && raw.times.f.length   === 1) ? raw.times.f   : st.times.f;
+        }
+
         st.updated_at = raw.updated_at || null;
         return st;
       }
@@ -338,6 +365,16 @@
         return out;
       }
 
+      function esc(s){
+        s = s || "";
+        return s
+          .replace(/&/g,"&amp;")
+          .replace(/</g,"&lt;")
+          .replace(/>/g,"&gt;")
+          .replace(/"/g,"&quot;")
+          .replace(/'/g,"&#039;");
+      }
+
       function renderPlayers(st){
         var html = "";
         var i, val;
@@ -351,16 +388,6 @@
         els.players.innerHTML = html;
       }
 
-      function esc(s){
-        s = s || "";
-        return s
-          .replace(/&/g,"&amp;")
-          .replace(/</g,"&lt;")
-          .replace(/>/g,"&gt;")
-          .replace(/"/g,"&quot;")
-          .replace(/'/g,"&#039;");
-      }
-
       function renderRound(title, roundKey, count, br){
         var i;
         var html = '<div class="roundTitle">' + title + '</div>';
@@ -369,6 +396,7 @@
           var a = br[roundKey].a[i] || "";
           var b = br[roundKey].b[i] || "";
           var w = state.winners[roundKey][i];
+          var t = (state.times && state.times[roundKey]) ? (state.times[roundKey][i] || "") : "";
 
           var canPick = (sTrim(a) !== "" && sTrim(b) !== "");
           var dis = canPick ? "" : " disabled";
@@ -378,6 +406,7 @@
 
           html += '<div class="matchRow">';
           html +=   '<div class="matchLabel">Match ' + (i+1) + '</div>';
+          html +=   '<input class="timeBox" type="text" placeholder="Dato/tid" value="' + esc(t) + '" data-round="' + roundKey + '" data-match="' + i + '" />';
           html +=   '<button class="' + aCls + '" data-round="' + roundKey + '" data-match="' + i + '" data-win="0"' + dis + '>' + esc(a || "—") + '</button>';
           html +=   '<button class="' + bCls + '" data-round="' + roundKey + '" data-match="' + i + '" data-win="1"' + dis + '>' + esc(b || "—") + '</button>';
           html +=   '<button class="miniBtn danger" data-round="' + roundKey + '" data-match="' + i + '" data-clear="1"' + (w===null ? " disabled" : "") + '>Tøm</button>';
@@ -398,21 +427,27 @@
 
         els.matches.innerHTML = html;
 
-        attachMatchHandlers();
+        attachHandlers();
       }
 
-      function attachMatchHandlers(){
+      function attachHandlers(){
         var buttons = els.matches.getElementsByTagName("button");
         var i;
         for (i=0;i<buttons.length;i++){
           buttons[i].onclick = onMatchClick;
+        }
+
+        var inputs = els.matches.getElementsByTagName("input");
+        for (i=0;i<inputs.length;i++){
+          if (inputs[i].className && inputs[i].className.indexOf("timeBox") !== -1) {
+            inputs[i].onblur = onTimeBlur;
+          }
         }
       }
 
       function onMatchClick(ev){
         var t = ev ? (ev.target || ev.srcElement) : null;
         if (!t) return;
-
         if (t.disabled) return;
 
         var round = t.getAttribute("data-round");
@@ -425,6 +460,15 @@
 
         var win = parseInt(t.getAttribute("data-win"), 10);
         setWinner(round, match, win);
+      }
+
+      function onTimeBlur(ev){
+        var t = ev ? (ev.target || ev.srcElement) : null;
+        if (!t) return;
+        var round = t.getAttribute("data-round");
+        var match = parseInt(t.getAttribute("data-match"), 10);
+        var val = sTrim(t.value || "");
+        setMatchTime(round, match, val);
       }
 
       function load(){
@@ -477,6 +521,17 @@
         xhr("POST", API.clearWinner, { round: round, match: match }, function(ok, res){
           if (!ok || !res || !res.ok) {
             setStatus("Feil: Kunne ikke tømme vinner.");
+            return;
+          }
+          setStatus("Oppdatert. Sist oppdatert: " + (res.updated_at || "—"));
+          load();
+        });
+      }
+
+      function setMatchTime(round, match, timeStr){
+        xhr("POST", API.setMatchTime, { round: round, match: match, time: timeStr }, function(ok, res){
+          if (!ok || !res || !res.ok) {
+            setStatus("Feil: Kunne ikke lagre dato/tid.");
             return;
           }
           setStatus("Oppdatert. Sist oppdatert: " + (res.updated_at || "—"));
