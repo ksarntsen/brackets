@@ -1,0 +1,8 @@
+// package.json
+{
+  "name": "tournament-bracket",
+  "private": true,
+  "dependencies": {
+    "pg": "^8.11.5"
+  }
+}
