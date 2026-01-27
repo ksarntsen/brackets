@@ -1,17 +1,7 @@
-// netlify/functions/save-players.mjs
-import { withClient, json, noContent, methodNotAllowed, loadState, saveState } from "./_db.mjs";
+import { withClient, json, noContent, methodNotAllowed, loadState, saveState, blankWinnersState, blankTimesState } from "./_db.mjs";
 
 function sTrim(s){
   return (s || "").replace(/^\s+|\s+$/g, "");
-}
-
-function blankWinners(){
-  return {
-    r16: [null,null,null,null,null,null,null,null],
-    qf:  [null,null,null,null],
-    sf:  [null,null],
-    f:   [null]
-  };
 }
 
 export default async (req) => {
@@ -32,7 +22,7 @@ export default async (req) => {
       p.push(sTrim(players[i]));
     }
 
-    const updated = await saveState(client, p, blankWinners());
+    const updated = await saveState(client, p, blankWinnersState(), blankTimesState());
     return json({ ok:true, updated_at: updated });
   });
 };
