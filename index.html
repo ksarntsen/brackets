@@ -1,10 +1,10 @@
-<!-- display.html -->
+<!-- index.html -->
 <!doctype html>
 <html lang="no">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Turnering – Display</title>
+  <title>Turnering – Kontroll</title>
   <style>
     body{
       margin:0;
@@ -13,133 +13,247 @@
       color:#2a1b00;
     }
     .wrap{
-      max-width:1900px;
+      max-width:1400px;
       margin:0 auto;
-      padding:18px 18px 28px 18px;
+      padding:18px;
     }
-    .head{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:16px;
-      margin-bottom:12px;
-    }
-    .title{
-      font-size:44px;
-      font-weight:800;
-      line-height:1.05;
-      margin:0;
-    }
-    .updated{
-      font-size:18px;
-      color:#6a4a00;
-      font-weight:700;
-      white-space:nowrap;
-    }
-
-    .bracket{
-      display:flex;
-      gap:22px;
-      align-items:flex-start;
-    }
-    .col{
-      display:flex;
-      flex-direction:column;
-      align-items:flex-start;
-    }
-
-    .match{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      margin-bottom:18px;
-      position:relative;
-    }
-
-    .slot{
-      width:260px;
-      min-height:58px;
-      padding:10px 12px;
-      border-radius:16px;
-      background:#fff7db;
-      border:3px solid rgba(42,27,0,.22);
-      font-size:26px;
-      font-weight:800;
-      line-height:1.1;
+    .top{
       display:flex;
       align-items:center;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-      box-shadow:0 14px 34px rgba(60,30,0,.16);
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
     }
-    .slot.empty{
-      opacity:.55;
-      font-weight:700;
-    }
-    .slot.winPick{
-      border-color:rgba(31,143,58,.85);
-      box-shadow:0 0 0 5px rgba(31,143,58,.16) inset, 0 14px 34px rgba(60,30,0,.16);
-    }
-
-    /* Column spacing tuned for 16 players */
-    .col.qf  { padding-top:41px; }
-    .col.qf  .match{ margin-bottom:92px; }
-    .col.sf  { padding-top:142px; }
-    .col.sf  .match{ margin-bottom:238px; }
-    .col.f   { padding-top:335px; }
-    .col.f   .match{ margin-bottom:0; }
-    .col.win { padding-top:335px; }
-
-    .champ{
-      width:300px;
-      min-height:82px;
+    h1{
+      margin:0;
       font-size:34px;
-      border-width:4px;
+      line-height:1.1;
+    }
+    .btn{
+      display:inline-block;
+      background:#2a1b00;
+      color:#fff7db;
+      text-decoration:none;
+      padding:12px 16px;
+      border-radius:12px;
+      font-weight:700;
+      font-size:18px;
+      border:0;
+      cursor:pointer;
+    }
+    .btn.secondary{
+      background:#6a4a00;
+    }
+    .grid{
+      display:flex;
+      gap:16px;
+      flex-wrap:wrap;
+      align-items:flex-start;
+    }
+    .card{
+      background:#fff7db;
+      border:3px solid rgba(42,27,0,.22);
+      border-radius:16px;
+      box-shadow:0 16px 40px rgba(60,30,0,.18);
+      padding:14px;
+      flex:1 1 520px;
+      min-width:320px;
+    }
+    .card h2{
+      margin:0 0 10px 0;
+      font-size:24px;
+    }
+    #status{
+      margin:10px 0 14px 0;
+      padding:10px 12px;
+      border-radius:12px;
+      background:rgba(255,247,219,.7);
+      border:2px solid rgba(42,27,0,.18);
+      font-size:18px;
+      min-height:22px;
     }
 
-    @keyframes moveIn {
-      0%   { transform: translateX(-28px); opacity:0; }
-      100% { transform: translateX(0); opacity:1; }
+    .players{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
     }
-    .moveIn{
-      animation: moveIn 450ms ease-out both;
+    .pRow{
+      width:calc(50% - 5px);
+      min-width:220px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:8px;
+    }
+    .pRow label{
+      width:46px;
+      font-weight:700;
+      font-size:18px;
+      color:#6a4a00;
+    }
+    .pRow input{
+      flex:1;
+      font-size:18px;
+      padding:10px 10px;
+      border-radius:12px;
+      border:2px solid rgba(42,27,0,.22);
+      outline:none;
+      background:#fff;
+      color:#2a1b00;
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .roundTitle{
+      font-size:22px;
+      font-weight:700;
+      margin:14px 0 8px 0;
+    }
+
+    .matchRow{
+      display:flex;
+      align-items:stretch;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:10px;
+      border-radius:14px;
+      border:2px solid rgba(42,27,0,.16);
+      background:rgba(255,255,255,.55);
+      margin-bottom:10px;
+    }
+    .matchLabel{
+      width:86px;
+      font-weight:700;
+      font-size:18px;
+      color:#6a4a00;
+      display:flex;
+      align-items:center;
+    }
+
+    .pickBtn{
+      border:2px solid rgba(42,27,0,.22);
+      background:#fff;
+      border-radius:14px;
+      padding:10px 12px;
+      font-size:20px;
+      font-weight:700;
+      cursor:pointer;
+      min-width:240px;
+      text-align:left;
+      color:#2a1b00;
+    }
+    .pickBtn.disabled{
+      opacity:.45;
+      cursor:default;
+    }
+    .pickBtn.winner{
+      border-color:rgba(31,143,58,.8);
+      box-shadow:0 0 0 4px rgba(31,143,58,.16) inset;
+    }
+
+    .miniBtn{
+      border:2px solid rgba(42,27,0,.22);
+      background:#fff;
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:18px;
+      font-weight:700;
+      cursor:pointer;
+      color:#2a1b00;
+    }
+    .miniBtn.danger{
+      border-color:rgba(214,40,40,.55);
+    }
+
+    .note{
+      color:#6a4a00;
+      font-size:16px;
+      margin-top:6px;
+      line-height:1.35;
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="head">
-      <div class="title">Turnering</div>
-      <div class="updated" id="updated">—</div>
+    <div class="top">
+      <h1>Turnering – kontroll</h1>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a class="btn secondary" href="display.html" target="_blank">Åpne display</a>
+      </div>
     </div>
 
-    <div id="bracket" class="bracket"></div>
+    <div id="status"></div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Deltakere (16)</h2>
+        <div id="players" class="players"></div>
+        <div class="actions">
+          <button id="btnSavePlayers" class="btn">Lagre spillere (nullstiller vinnere)</button>
+          <button id="btnReload" class="btn secondary">Oppdater fra DB</button>
+        </div>
+        <div class="note">
+          Rekkefølge bestemmer matchups: 1 vs 2, 3 vs 4, …, 15 vs 16.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Vinnere</h2>
+        <div id="matches"></div>
+        <div class="note">
+          Vinner i en runde låser inn videre deltakere. Endrer du en vinner i en tidligere runde, blir senere runder automatisk tømt.
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
     (function(){
-      var API_GET = "/.netlify/functions/get-bracket";
-      var elBracket = document.getElementById("bracket");
-      var elUpdated = document.getElementById("updated");
+      var API = {
+        get: "/.netlify/functions/get-bracket",
+        savePlayers: "/.netlify/functions/save-players",
+        setWinner: "/.netlify/functions/set-winner",
+        clearWinner: "/.netlify/functions/clear-winner"
+      };
 
-      var lastUpdated = null;
+      var els = {
+        status: document.getElementById("status"),
+        players: document.getElementById("players"),
+        matches: document.getElementById("matches"),
+        btnSavePlayers: document.getElementById("btnSavePlayers"),
+        btnReload: document.getElementById("btnReload")
+      };
+
+      var state = null;
 
       function sTrim(s){
         return (s || "").replace(/^\s+|\s+$/g, "");
       }
 
-      function xhrGet(url, cb){
+      function setStatus(msg){
+        els.status.innerHTML = msg || "";
+      }
+
+      function xhr(method, url, data, cb){
         var x = new XMLHttpRequest();
         x.onreadystatechange = function(){
           if (x.readyState !== 4) return;
           var ok = (x.status >= 200 && x.status < 300);
           var res = null;
           try { res = JSON.parse(x.responseText || "{}"); } catch(e){ res = {}; }
-          cb(ok, res);
+          cb(ok, res, x);
         };
-        x.open("GET", url, true);
-        x.send(null);
+        x.open(method, url, true);
+        if (method === "POST" || method === "PUT") {
+          x.setRequestHeader("Content-Type", "application/json;charset=utf-8");
+        }
+        x.send(data ? JSON.stringify(data) : null);
       }
 
       function blankState(){
@@ -162,12 +276,14 @@
         var st = blankState();
         if (!raw) return st;
 
-        if (raw.players && raw.players.length === 16) st.players = raw.players;
+        if (raw.players && raw.players.length === 16) {
+          st.players = raw.players;
+        }
         if (raw.winners) {
-          if (raw.winners.r16 && raw.winners.r16.length === 8) st.winners.r16 = raw.winners.r16;
-          if (raw.winners.qf  && raw.winners.qf.length  === 4) st.winners.qf  = raw.winners.qf;
-          if (raw.winners.sf  && raw.winners.sf.length  === 2) st.winners.sf  = raw.winners.sf;
-          if (raw.winners.f   && raw.winners.f.length   === 1) st.winners.f   = raw.winners.f;
+          st.winners.r16 = (raw.winners.r16 && raw.winners.r16.length === 8) ? raw.winners.r16 : st.winners.r16;
+          st.winners.qf  = (raw.winners.qf  && raw.winners.qf.length  === 4) ? raw.winners.qf  : st.winners.qf;
+          st.winners.sf  = (raw.winners.sf  && raw.winners.sf.length  === 2) ? raw.winners.sf  : st.winners.sf;
+          st.winners.f   = (raw.winners.f   && raw.winners.f.length   === 1) ? raw.winners.f   : st.winners.f;
         }
         st.updated_at = raw.updated_at || null;
         return st;
@@ -222,52 +338,17 @@
         return out;
       }
 
-      function topmostDecidedRound(st){
-        var i;
-        for (i=0;i<1;i++){ if (st.winners.f[i] !== null) return "f"; }
-        for (i=0;i<2;i++){ if (st.winners.sf[i] !== null) return "sf"; }
-        for (i=0;i<4;i++){ if (st.winners.qf[i] !== null) return "qf"; }
-        for (i=0;i<8;i++){ if (st.winners.r16[i] !== null) return "r16"; }
-        return null;
-      }
-
-      function buildAnimTargets(st, br){
-        var top = topmostDecidedRound(st);
-        var targets = {
-          qf: {}, sf: {}, f: {}, win: {}
-        };
-        var i, m, side;
-
-        if (top === "r16") {
-          for (i=0;i<8;i++){
-            if (st.winners.r16[i] === null) continue;
-            if (!br.r16.a[i] || !br.r16.b[i]) continue;
-            m = Math.floor(i/2);
-            side = (i % 2); /* 0 -> left slot, 1 -> right slot */
-            targets.qf[m + "-" + side] = 1;
-          }
-        } else if (top === "qf") {
-          for (i=0;i<4;i++){
-            if (st.winners.qf[i] === null) continue;
-            if (!br.qf.a[i] || !br.qf.b[i]) continue;
-            m = Math.floor(i/2);
-            side = (i % 2);
-            targets.sf[m + "-" + side] = 1;
-          }
-        } else if (top === "sf") {
-          for (i=0;i<2;i++){
-            if (st.winners.sf[i] === null) continue;
-            if (!br.sf.a[i] || !br.sf.b[i]) continue;
-            m = 0;
-            side = (i % 2);
-            targets.f[m + "-" + side] = 1;
-          }
-        } else if (top === "f") {
-          if (st.winners.f[0] !== null && br.f.a[0] && br.f.b[0]) {
-            targets.win["champ"] = 1;
-          }
+      function renderPlayers(st){
+        var html = "";
+        var i, val;
+        for (i=0;i<16;i++){
+          val = sTrim(st.players[i] || "");
+          html += '<div class="pRow">';
+          html += '<label>' + (i+1) + '.</label>';
+          html += '<input id="p' + i + '" type="text" value="' + esc(val) + '" />';
+          html += '</div>';
         }
-        return targets;
+        els.players.innerHTML = html;
       }
 
       function esc(s){
@@ -280,83 +361,133 @@
           .replace(/'/g,"&#039;");
       }
 
-      function mkSlot(text, isWinner, moveIn, isChamp){
-        var d = document.createElement("div");
-        d.className = "slot" + (isWinner ? " winPick" : "") + (moveIn ? " moveIn" : "");
-        if (!text) d.className += " empty";
-        if (isChamp) d.className += " champ";
-        d.innerHTML = esc(text || "—");
-        return d;
-      }
-
-      function mkMatch(a, b, winnerSide, moveA, moveB){
-        var m = document.createElement("div");
-        m.className = "match";
-        m.appendChild(mkSlot(a, winnerSide===0 && a, moveA, false));
-        m.appendChild(mkSlot(b, winnerSide===1 && b, moveB, false));
-        return m;
-      }
-
-      function render(st){
-        var br = computeBracket(st);
-        var anim = buildAnimTargets(st, br);
-
-        elBracket.innerHTML = "";
-
-        var colR16 = document.createElement("div");
-        colR16.className = "col r16";
+      function renderRound(title, roundKey, count, br){
         var i;
-        for (i=0;i<8;i++){
-          colR16.appendChild(mkMatch(br.r16.a[i], br.r16.b[i], st.winners.r16[i], false, false));
+        var html = '<div class="roundTitle">' + title + '</div>';
+
+        for (i=0;i<count;i++){
+          var a = br[roundKey].a[i] || "";
+          var b = br[roundKey].b[i] || "";
+          var w = state.winners[roundKey][i];
+
+          var canPick = (sTrim(a) !== "" && sTrim(b) !== "");
+          var dis = canPick ? "" : " disabled";
+
+          var aCls = "pickBtn" + (canPick ? "" : " disabled") + ((w===0) ? " winner" : "");
+          var bCls = "pickBtn" + (canPick ? "" : " disabled") + ((w===1) ? " winner" : "");
+
+          html += '<div class="matchRow">';
+          html +=   '<div class="matchLabel">Match ' + (i+1) + '</div>';
+          html +=   '<button class="' + aCls + '" data-round="' + roundKey + '" data-match="' + i + '" data-win="0"' + dis + '>' + esc(a || "—") + '</button>';
+          html +=   '<button class="' + bCls + '" data-round="' + roundKey + '" data-match="' + i + '" data-win="1"' + dis + '>' + esc(b || "—") + '</button>';
+          html +=   '<button class="miniBtn danger" data-round="' + roundKey + '" data-match="' + i + '" data-clear="1"' + (w===null ? " disabled" : "") + '>Tøm</button>';
+          html += '</div>';
         }
 
-        var colQF = document.createElement("div");
-        colQF.className = "col qf";
-        for (i=0;i<4;i++){
-          var moveA = !!anim.qf[i+"-0"];
-          var moveB = !!anim.qf[i+"-1"];
-          colQF.appendChild(mkMatch(br.qf.a[i], br.qf.b[i], st.winners.qf[i], moveA, moveB));
-        }
-
-        var colSF = document.createElement("div");
-        colSF.className = "col sf";
-        for (i=0;i<2;i++){
-          var moveA2 = !!anim.sf[i+"-0"];
-          var moveB2 = !!anim.sf[i+"-1"];
-          colSF.appendChild(mkMatch(br.sf.a[i], br.sf.b[i], st.winners.sf[i], moveA2, moveB2));
-        }
-
-        var colF = document.createElement("div");
-        colF.className = "col f";
-        var moveFA = !!anim.f["0-0"];
-        var moveFB = !!anim.f["0-1"];
-        colF.appendChild(mkMatch(br.f.a[0], br.f.b[0], st.winners.f[0], moveFA, moveFB));
-
-        var colW = document.createElement("div");
-        colW.className = "col win";
-        colW.appendChild(mkSlot(br.champ, true, !!anim.win["champ"], true));
-
-        elBracket.appendChild(colR16);
-        elBracket.appendChild(colQF);
-        elBracket.appendChild(colSF);
-        elBracket.appendChild(colF);
-        elBracket.appendChild(colW);
-
-        elUpdated.innerHTML = st.updated_at ? ("Sist oppdatert: " + st.updated_at) : "—";
+        return html;
       }
 
-      function tick(){
-        xhrGet(API_GET, function(ok, res){
-          if (!ok || !res || !res.ok) return;
-          var st = safeState(res.state);
-          if (st.updated_at && st.updated_at === lastUpdated) return;
-          lastUpdated = st.updated_at || null;
-          render(st);
+      function renderMatches(st){
+        var br = computeBracket(st);
+
+        var html = "";
+        html += renderRound("Åttendedelsfinaler (16 → 8)", "r16", 8, br);
+        html += renderRound("Kvartfinaler (8 → 4)", "qf", 4, br);
+        html += renderRound("Semifinaler (4 → 2)", "sf", 2, br);
+        html += renderRound("Finale (2 → 1)", "f", 1, br);
+
+        els.matches.innerHTML = html;
+
+        attachMatchHandlers();
+      }
+
+      function attachMatchHandlers(){
+        var buttons = els.matches.getElementsByTagName("button");
+        var i;
+        for (i=0;i<buttons.length;i++){
+          buttons[i].onclick = onMatchClick;
+        }
+      }
+
+      function onMatchClick(ev){
+        var t = ev ? (ev.target || ev.srcElement) : null;
+        if (!t) return;
+
+        if (t.disabled) return;
+
+        var round = t.getAttribute("data-round");
+        var match = parseInt(t.getAttribute("data-match"), 10);
+
+        if (t.getAttribute("data-clear") === "1") {
+          clearWinner(round, match);
+          return;
+        }
+
+        var win = parseInt(t.getAttribute("data-win"), 10);
+        setWinner(round, match, win);
+      }
+
+      function load(){
+        setStatus("Laster …");
+        xhr("GET", API.get, null, function(ok, res){
+          if (!ok || !res || !res.ok) {
+            setStatus("Feil: Klarte ikke å hente data fra DB.");
+            state = blankState();
+            renderPlayers(state);
+            renderMatches(state);
+            return;
+          }
+          state = safeState(res.state);
+          setStatus("Sist oppdatert: " + (state.updated_at || "—"));
+          renderPlayers(state);
+          renderMatches(state);
         });
       }
 
-      tick();
-      setInterval(tick, 1500);
+      function savePlayers(){
+        var p = [];
+        var i, v;
+        for (i=0;i<16;i++){
+          v = document.getElementById("p"+i).value;
+          p.push(sTrim(v));
+        }
+
+        xhr("POST", API.savePlayers, { players: p }, function(ok, res){
+          if (!ok || !res || !res.ok) {
+            setStatus("Feil: Kunne ikke lagre spillere.");
+            return;
+          }
+          setStatus("Lagret. Sist oppdatert: " + (res.updated_at || "—"));
+          load();
+        });
+      }
+
+      function setWinner(round, match, winner){
+        xhr("POST", API.setWinner, { round: round, match: match, winner: winner }, function(ok, res){
+          if (!ok || !res || !res.ok) {
+            setStatus("Feil: Kunne ikke sette vinner. Fyll inn begge navnene i matchen først.");
+            return;
+          }
+          setStatus("Oppdatert. Sist oppdatert: " + (res.updated_at || "—"));
+          load();
+        });
+      }
+
+      function clearWinner(round, match){
+        xhr("POST", API.clearWinner, { round: round, match: match }, function(ok, res){
+          if (!ok || !res || !res.ok) {
+            setStatus("Feil: Kunne ikke tømme vinner.");
+            return;
+          }
+          setStatus("Oppdatert. Sist oppdatert: " + (res.updated_at || "—"));
+          load();
+        });
+      }
+
+      els.btnSavePlayers.onclick = function(){ savePlayers(); };
+      els.btnReload.onclick = function(){ load(); };
+
+      load();
     })();
   </script>
 </body>
