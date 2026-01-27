@@ -1,634 +1,431 @@
-<!-- display.html -->
 <!doctype html>
 <html lang="no">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Turnering – Display</title>
+  <title>Gangespillet – Highscore</title>
   <style>
+    :root{
+      --bg:#141414;                 /* very dark grey (not pure black) */
+      --card:#1b1b1b;               /* panel background */
+      --text:#f4f4f4;               /* main text */
+      --muted:#cfcfcf;              /* header / muted text */
+
+      --red:#d62828;                /* keep red borders */
+      --redDark:#2b0c0c;            /* very dark red for name bubbles */
+      --redDark2:#3a1010;           /* slightly lighter for hover/alt */
+      --border:rgba(214,40,40,.85);
+      --line:rgba(255,255,255,.08);
+
+      --radius:16px;
+    }
+
     body{
       margin:0;
       font-family: Arial, sans-serif;
-      background:#0b0b0d;
-      color:#f4f4f6;
-      overflow:hidden;
+      background: radial-gradient(1200px 800px at 20% 0%, #1b1b1b 0%, var(--bg) 55%, #101010 100%);
+      color:var(--text);
     }
+
     .wrap{
-      max-width:2200px;
+      max-width:1200px;
       margin:0 auto;
-      padding:18px;
+      padding:20px;
     }
-    .head{
+
+    .header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin:0 0 14px 0;
+    }
+
+    h1{
+      margin:0;
+      font-size:34px;
+      font-weight:800;
+      line-height:1.1;
+      letter-spacing:.2px;
+      color:var(--text);
+      text-shadow: 0 2px 16px rgba(0,0,0,.45);
+    }
+
+    .logo{
+      height:54px;
+      width:auto;
+      display:block;
+      object-fit:contain;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,.55));
+    }
+
+    .grid{
+      display:flex;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
+    .box{
+      background: linear-gradient(180deg, #1f1f1f 0%, var(--card) 100%);
+      border:3px solid var(--border);
+      border-radius:var(--radius);
+      padding:16px;
+      flex:1 1 520px;
+      min-width:320px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+    }
+
+    .titleRow{
       display:flex;
       align-items:baseline;
       justify-content:space-between;
-      gap:16px;
+      gap:10px;
       margin-bottom:10px;
     }
-    .title{
-      font-size:44px;
-      font-weight:900;
-      line-height:1.05;
+
+    .box h2{
       margin:0;
-      letter-spacing:.2px;
-    }
-    .updated{
       font-size:18px;
-      color:rgba(244,244,246,.68);
       font-weight:800;
-      white-space:nowrap;
+      color:var(--muted);
+      letter-spacing:.7px;
+      text-transform:uppercase;
     }
 
-    .stage{
-      position:relative;
-      width:100%;
-      border-radius:16px;
-      background:rgba(255,255,255,.02);
-      border:2px solid rgba(214,31,38,.18);
-      overflow:hidden;
-    }
-
-    .match{
-      position:absolute;
-      width:240px; /* JS keeps in sync */
-      pointer-events:none;
-    }
-
-    .when{
-      position:absolute;
-      top:-18px;
-      left:8px;
-      right:8px;
+    .status{
       font-size:14px;
       font-weight:800;
-      color:rgba(244,244,246,.70);
+      color:var(--muted);
       white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .when.right{
-      text-align:right;
+      min-height:18px;
     }
 
-    .slot{
-      position:absolute;
-      height:58px; /* JS keeps in sync */
-      padding:0 12px;
-      border-radius:16px;
-      background:#121216;
-      border:3px solid rgba(214,31,38,.35);
+    table{
+      width:100%;
+      border-collapse:collapse;
       font-size:26px;
-      font-weight:900;
-      line-height:1;
-      display:flex;
-      align-items:center;
+      table-layout:fixed;
+    }
+
+    th, td{
+      padding:10px 8px;
+      border-bottom:2px solid var(--line);
       overflow:hidden;
-      text-overflow:ellipsis;
+    }
+
+    th{
+      text-align:left;
+      color:var(--muted);
+      font-size:16px;
+      letter-spacing:.7px;
+      text-transform:uppercase;
       white-space:nowrap;
-      box-shadow:0 16px 40px rgba(0,0,0,.45);
-      color:#f4f4f6;
-    }
-    .slot.right{
-      justify-content:flex-end;
-      text-align:right;
-    }
-    .slot.empty{
-      opacity:.55;
-      font-weight:800;
-    }
-    .slot.winPick{
-      border-color:rgba(214,31,38,.95);
-      box-shadow:0 0 0 5px rgba(214,31,38,.18) inset, 0 16px 40px rgba(0,0,0,.45);
-      background:#0b0b0d;
     }
 
-    .outDot{
-      position:absolute;
-      width:10px;
-      height:10px;
-      border-radius:50%;
-      background:rgba(214,31,38,.88);
-      box-shadow:0 0 0 5px rgba(214,31,38,.12);
-      opacity:.55;
-    }
-    .outDot.strong{
-      opacity:1;
-      box-shadow:0 0 0 6px rgba(214,31,38,.16), 0 14px 28px rgba(0,0,0,.35);
+    td.rank{
+      width:70px;
+      font-weight:900;
+      color:var(--muted);
+      text-align:center;
+      white-space:nowrap;
     }
 
-    .champ{
-      position:absolute;
-      height:78px;
-      border-width:4px;
-      font-size:34px;
-      border-radius:18px;
+    td.points{
+      width:140px;
+      font-weight:900;
+      white-space:nowrap;
+      color:var(--text);
     }
 
-    @keyframes moveIn {
-      0%   { transform: translateX(-28px); opacity:0; }
-      100% { transform: translateX(0); opacity:1; }
+    /* name bubble */
+    td.name{
+      font-weight:900;
+      white-space:nowrap;
+      text-overflow:ellipsis;
+
+      background: linear-gradient(180deg, var(--redDark2) 0%, var(--redDark) 100%);
+      border:2px solid rgba(214,40,40,.85);
+      border-radius:999px;
+      padding:6px 12px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.35);
     }
-    @keyframes moveInR {
-      0%   { transform: translateX(28px); opacity:0; }
-      100% { transform: translateX(0); opacity:1; }
+
+    /* class stays narrow */
+    td.meta{
+      width:90px;
+      font-size:18px;
+      color:var(--muted);
+      white-space:nowrap;
+      text-overflow:ellipsis;
+      text-align:left;
     }
-    .moveInL{ animation: moveIn 450ms ease-out both; }
-    .moveInR{ animation: moveInR 450ms ease-out both; }
+
+    /* keep table row spacing consistent when name becomes a pill */
+    tbody tr td{ vertical-align:middle; }
+
+    .bigError{
+      margin-top:12px;
+      padding:12px;
+      background:#121212;
+      border:3px solid var(--red);
+      border-radius:14px;
+      font:16px/1.3 monospace;
+      color:#ffd2d2;
+      white-space:pre-wrap;
+      display:none;
+    }
+
+    @media (max-width: 900px){
+      table{ font-size:22px; }
+      .logo{ height:46px; }
+      h1{ font-size:30px; }
+      td.meta{ width:80px; }
+      td.points{ width:130px; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="head">
-      <div class="title">Turnering</div>
-      <div class="updated" id="updated">—</div>
+    <div class="header">
+      <h1>Gangespillet</h1>
+      <img class="logo" src="logo.png" alt="Logo" />
     </div>
 
-    <div id="stage" class="stage"></div>
+    <div class="grid">
+      <div class="box">
+        <div class="titleRow">
+          <h2>Top 5 (alle)</h2>
+          <div class="status" id="statusGlobal">Laster…</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px;">#</th>
+              <th style="width:140px;">Poeng</th>
+              <th>Navn</th>
+              <th style="width:90px;">Klasse</th>
+            </tr>
+          </thead>
+          <tbody id="rowsGlobal"></tbody>
+        </table>
+      </div>
+
+      <div class="box">
+        <div class="titleRow">
+          <h2>Topp 5 klasser</h2>
+          <div class="status" id="statusClass">Laster…</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:70px;">#</th>
+              <th>Klasse</th>
+              <th style="width:180px;">Poeng</th>
+            </tr>
+          </thead>
+          <tbody id="rowsClass"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bigError" id="errBox"></div>
   </div>
 
-  <script>
-    (function(){
-      /* =========================
-         CONFIG (ES5-safe)
-         ========================= */
-      var CFG = {
-        API_GET: "/.netlify/functions/get-bracket",
-        POLL_MS: 1500,
+<script>
+(function(){
+  var TOP_GLOBAL = 5;
+  var TOP_CLASSES = 5;
+  var TOP_IN_CLASS = 8; // snitt av topp 8 (unike navn)
 
-        /* Geometry */
-        COL_W: 240,
-        SLOT_W: 220,
-        SLOT_H: 58,
-        CHAMP_H: 78,
+  var ALL_CLASSES = ["8A","8B","8C","8D","9A","9B","9C","9D","9E","10A","10B","10C","10D","10E"];
 
-        /* Horizontal step between rounds (auto-clamped to fit) */
-        STEP_DEFAULT: 260,
+  var statusGlobal = document.getElementById("statusGlobal");
+  var rowsGlobal = document.getElementById("rowsGlobal");
 
-        /* Vertical padding inside stage */
-        PAD_TOP: 20,
-        PAD_BOT: 20
+  var statusClass = document.getElementById("statusClass");
+  var rowsClass = document.getElementById("rowsClass");
+
+  var errBox = document.getElementById("errBox");
+
+  function showError(text){
+    errBox.style.display = "block";
+    errBox.textContent = String(text || "Ukjent feil");
+  }
+
+  function esc(s){
+    s = (s === undefined || s === null) ? "" : String(s);
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function normalize(e){
+    e = e || {};
+    var points = Number(e.points);
+    if (!isFinite(points)) points = 0;
+
+    var name = (e.name === undefined || e.name === null) ? "Ukjent" : String(e.name);
+    var cls = (e.className === undefined || e.className === null) ? "" : String(e.className);
+
+    return { points: points, name: name, className: cls };
+  }
+
+  function requestJson(url, ok, fail){
+    try{
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function(){
+        if (xhr.readyState !== 4) return;
+
+        if (xhr.status >= 200 && xhr.status < 300){
+          try{
+            var data = JSON.parse(xhr.responseText || "null");
+            ok(data);
+          }catch(e){
+            fail("JSON parse-feil: " + e);
+          }
+        } else {
+          fail("HTTP " + xhr.status + ": " + (xhr.responseText || ""));
+        }
       };
+      xhr.onerror = function(){
+        fail("Nettverksfeil (XHR)");
+      };
+      xhr.send(null);
+    }catch(e2){
+      fail("XHR-feil: " + e2);
+    }
+  }
 
-      var elStage = document.getElementById("stage");
-      var elUpdated = document.getElementById("updated");
+  function renderGlobal(list){
+    rowsGlobal.innerHTML = "";
 
-      var lastUpdated = null;
-      var lastState = null;
-      var lastBracket = null; /* last computed bracket names, for animations */
+    if (!list || !list.length){
+      statusGlobal.innerHTML = "Ingen scorer.";
+      return;
+    }
 
-      function sTrim(s){
-        return (s || "").replace(/^\s+|\s+$/g, "");
+    statusGlobal.innerHTML = "";
+
+    var html = "";
+    for (var i=0; i<list.length && i<TOP_GLOBAL; i++){
+      var e = normalize(list[i]);
+      html += ""
+        + "<tr>"
+        +   "<td class='rank'>" + (i+1) + "</td>"
+        +   "<td class='points'>" + esc(e.points) + "p</td>"
+        +   "<td class='name' title='" + esc(e.name) + "'>" + esc(e.name) + "</td>"
+        +   "<td class='meta'>" + esc(e.className) + "</td>"
+        + "</tr>";
+    }
+    rowsGlobal.innerHTML = html;
+  }
+
+  function uniqByNameSorted(list){
+    var seen = {};
+    var out = [];
+    for (var i=0;i<list.length;i++){
+      var e = normalize(list[i]);
+      var key = String(e.name || "").replace(/^\s+|\s+$/g,"").toLowerCase();
+      if (!key) continue;
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push(e);
+    }
+    return out;
+  }
+
+  function sortByPointsDesc(list){
+    list.sort(function(a,b){
+      var ap = Number(a && a.points) || 0;
+      var bp = Number(b && b.points) || 0;
+      return bp - ap;
+    });
+  }
+
+  function avgTopN(uniqueList){
+    if (!uniqueList || uniqueList.length < TOP_IN_CLASS) return null;
+    var sum = 0;
+    for (var i=0;i<TOP_IN_CLASS;i++){
+      sum += (Number(uniqueList[i] && uniqueList[i].points) || 0);
+    }
+    return sum / TOP_IN_CLASS;
+  }
+
+  function renderClasses(classStats){
+    rowsClass.innerHTML = "";
+
+    if (!classStats || !classStats.length){
+      statusClass.innerHTML = "Ingen klasser (min. " + TOP_IN_CLASS + " navn).";
+      return;
+    }
+
+    statusClass.innerHTML = "";
+
+    var html = "";
+    for (var i=0; i<classStats.length && i<TOP_CLASSES; i++){
+      var c = classStats[i];
+      var avg = Math.round(c.avg * 10) / 10;
+      html += ""
+        + "<tr>"
+        +   "<td class='rank'>" + (i+1) + "</td>"
+        +   "<td class='name' title='" + esc(c.className) + "'>" + esc(c.className) + "</td>"
+        +   "<td class='points'>" + avg.toFixed(1) + "p</td>"
+        + "</tr>";
+    }
+    rowsClass.innerHTML = html;
+  }
+
+  function computeTopClasses(done){
+    var results = [];
+    var idx = 0;
+
+    function next(){
+      if (idx >= ALL_CLASSES.length){
+        results.sort(function(a,b){ return b.avg - a.avg; });
+        done(results.slice(0, TOP_CLASSES));
+        return;
       }
 
-      function esc(s){
-        s = s || "";
-        return s
-          .replace(/&/g,"&amp;")
-          .replace(/</g,"&lt;")
-          .replace(/>/g,"&gt;")
-          .replace(/"/g,"&quot;")
-          .replace(/'/g,"&#039;");
-      }
+      var cls = ALL_CLASSES[idx++];
+      var url = "/.netlify/functions/get-top-scores?className=" + encodeURIComponent(cls) + "&limit=80";
 
-      function xhrGet(url, cb){
-        var x = new XMLHttpRequest();
-        x.onreadystatechange = function(){
-          if (x.readyState !== 4) return;
-          var ok = (x.status >= 200 && x.status < 300);
-          var res = null;
-          try { res = JSON.parse(x.responseText || "{}"); } catch(e){ res = {}; }
-          cb(ok, res);
-        };
-        x.open("GET", url, true);
-        x.send(null);
-      }
+      requestJson(url, function(data){
+        if (Object.prototype.toString.call(data) !== "[object Array]") data = [];
+        sortByPointsDesc(data);
 
-      function blankState(){
-        var i, p = [];
-        for (i=0;i<16;i++) p.push("");
-        return {
-          players: p,
-          winners: { r16:[null,null,null,null,null,null,null,null], qf:[null,null,null,null], sf:[null,null], f:[null] },
-          times:   { r16:["","","","","","","",""],               qf:["","","",""],      sf:["",""],    f:[""] },
-          updated_at: null
-        };
-      }
-
-      function safeState(raw){
-        var st = blankState();
-        if (!raw) return st;
-
-        if (raw.players && raw.players.length === 16) st.players = raw.players;
-
-        if (raw.winners) {
-          if (raw.winners.r16 && raw.winners.r16.length === 8) st.winners.r16 = raw.winners.r16;
-          if (raw.winners.qf  && raw.winners.qf.length  === 4) st.winners.qf  = raw.winners.qf;
-          if (raw.winners.sf  && raw.winners.sf.length  === 2) st.winners.sf  = raw.winners.sf;
-          if (raw.winners.f   && raw.winners.f.length   === 1) st.winners.f   = raw.winners.f;
+        var unique = uniqByNameSorted(data);
+        var avg = avgTopN(unique);
+        if (avg !== null){
+          results.push({ className: cls, avg: avg });
         }
-
-        if (raw.times) {
-          if (raw.times.r16 && raw.times.r16.length === 8) st.times.r16 = raw.times.r16;
-          if (raw.times.qf  && raw.times.qf.length  === 4) st.times.qf  = raw.times.qf;
-          if (raw.times.sf  && raw.times.sf.length  === 2) st.times.sf  = raw.times.sf;
-          if (raw.times.f   && raw.times.f.length   === 1) st.times.f   = raw.times.f;
-        }
-
-        st.updated_at = raw.updated_at || null;
-        return st;
-      }
-
-      function computeBracket(st){
-        var out = {
-          r16: { a:[], b:[], wn:[] },
-          qf:  { a:[], b:[], wn:[] },
-          sf:  { a:[], b:[], wn:[] },
-          f:   { a:[], b:[], wn:[] },
-          champ: ""
-        };
-
-        var i, a, b, w;
-
-        for (i=0;i<8;i++){
-          a = sTrim(st.players[i*2] || "");
-          b = sTrim(st.players[i*2+1] || "");
-          out.r16.a[i]=a; out.r16.b[i]=b;
-          w = st.winners.r16[i];
-          out.r16.wn[i] = (w===0) ? a : ((w===1) ? b : "");
-        }
-
-        for (i=0;i<4;i++){
-          a = out.r16.wn[i*2] || "";
-          b = out.r16.wn[i*2+1] || "";
-          out.qf.a[i]=a; out.qf.b[i]=b;
-          w = st.winners.qf[i];
-          out.qf.wn[i] = (w===0) ? a : ((w===1) ? b : "");
-        }
-
-        for (i=0;i<2;i++){
-          a = out.qf.wn[i*2] || "";
-          b = out.qf.wn[i*2+1] || "";
-          out.sf.a[i]=a; out.sf.b[i]=b;
-          w = st.winners.sf[i];
-          out.sf.wn[i] = (w===0) ? a : ((w===1) ? b : "");
-        }
-
-        a = out.sf.wn[0] || "";
-        b = out.sf.wn[1] || "";
-        out.f.a[0]=a; out.f.b[0]=b;
-        w = st.winners.f[0];
-        out.f.wn[0] = (w===0) ? a : ((w===1) ? b : "");
-
-        out.champ = out.f.wn[0] || "";
-        return out;
-      }
-
-      function computeStageHeight(){
-        var wrap = document.getElementsByClassName("wrap")[0];
-        var head = document.getElementsByClassName("head")[0];
-
-        var h = window.innerHeight || 900;
-        var used = 0;
-
-        if (wrap && wrap.offsetTop) used += wrap.offsetTop;
-        if (head && head.offsetHeight) used += head.offsetHeight;
-        used += 26;
-
-        var stageH = h - used;
-        if (stageH < 520) stageH = 520;
-        return stageH;
-      }
-
-      function seedPlayerCenters(stageH){
-        var centers = [];
-        var padTop = CFG.PAD_TOP;
-        var padBot = CFG.PAD_BOT;
-        var usable = stageH - padTop - padBot;
-        if (usable < 200) usable = 200;
-
-        var step = usable / 8;
-        var j;
-        for (j=0;j<8;j++){
-          centers[j] = padTop + (j + 0.5) * step;
-        }
-        return centers;
-      }
-
-      function computeXS(stageW){
-        var colW = CFG.COL_W;
-
-        var centerX = Math.floor((stageW - colW) / 2);
-
-        var maxStep = Math.floor((stageW - colW) / 6); /* 3 steps each side */
-        if (maxStep < 60) maxStep = 60;
-
-        var step = CFG.STEP_DEFAULT;
-        if (step > maxStep) step = maxStep;
-
-        var xs = {
-          left:  { r16: centerX - 3*step, qf: centerX - 2*step, sf: centerX - step },
-          right: { r16: centerX + 3*step, qf: centerX + 2*step, sf: centerX + step },
-          final: centerX
-        };
-
-        return { xs: xs, step: step };
-      }
-
-      function mkSlot(text, isWinner, isRight, animClass){
-        var d = document.createElement("div");
-        var cls = "slot";
-        if (isRight) cls += " right";
-        if (!text) cls += " empty";
-        if (isWinner) cls += " winPick";
-        if (animClass) cls += " " + animClass;
-        d.className = cls;
-        d.innerHTML = esc(text || "—");
-        d.style.width = CFG.SLOT_W + "px";
-        d.style.height = CFG.SLOT_H + "px";
-        return d;
-      }
-
-      function mkWhen(text, isRight){
-        var t = sTrim(text || "");
-        if (!t) return null;
-        var d = document.createElement("div");
-        d.className = "when" + (isRight ? " right" : "");
-        d.innerHTML = esc(t);
-        return d;
-      }
-
-      function mkDot(x, y, strong){
-        var d = document.createElement("div");
-        d.className = "outDot" + (strong ? " strong" : "");
-        d.style.left = x + "px";
-        d.style.top = y + "px";
-        return d;
-      }
-
-      function renderMatch(stage, x, yA, yB, nameA, nameB, winnerSide, whenText, isRight, z, animA, animB){
-        var colW = CFG.COL_W;
-        var slotW = CFG.SLOT_W;
-        var slotH = CFG.SLOT_H;
-
-        var yMin = (yA < yB) ? yA : yB;
-        var yMax = (yA > yB) ? yA : yB;
-
-        var matchTop = Math.floor(yMin - slotH/2);
-        var matchH = Math.ceil((yMax + slotH/2) - matchTop);
-
-        var m = document.createElement("div");
-        m.className = "match";
-        m.style.left = x + "px";
-        m.style.top = matchTop + "px";
-        m.style.height = matchH + "px";
-        m.style.width = colW + "px";
-        m.style.zIndex = String(z);
-
-        var w = mkWhen(whenText, isRight);
-        if (w) m.appendChild(w);
-
-        var slotLeft = Math.floor((colW - slotW) / 2);
-
-        var isWinA = (winnerSide === 0) && !!nameA;
-        var isWinB = (winnerSide === 1) && !!nameB;
-
-        var a = mkSlot(nameA, isWinA, isRight, animA);
-        var b = mkSlot(nameB, isWinB, isRight, animB);
-
-        a.style.left = slotLeft + "px";
-        b.style.left = slotLeft + "px";
-
-        a.style.top = Math.floor((yA - slotH/2) - matchTop) + "px";
-        b.style.top = Math.floor((yB - slotH/2) - matchTop) + "px";
-
-        m.appendChild(a);
-        m.appendChild(b);
-
-        /* output marker (visual anchor for where the winner "lands" in next column) */
-        var outY = Math.floor(((yA + yB)/2) - matchTop - 5);
-        var outX = isRight ? 6 : (colW - 16);
-        m.appendChild(mkDot(outX, outY, (winnerSide !== null)));
-
-        stage.appendChild(m);
-      }
-
-      function animFlag(prev, now){
-        if (!now) return false;
-        if (!prev) return true;
-        return prev !== now;
-      }
-
-      function buildAnim(prevBr, br){
-        var a = {
-          qfA:[false,false,false,false], qfB:[false,false,false,false],
-          sfA:[false,false], sfB:[false,false],
-          fA:false, fB:false,
-          champ:false
-        };
-        if (!prevBr) return a;
-
-        var i;
-        for (i=0;i<4;i++){
-          a.qfA[i] = animFlag(prevBr.qf.a[i], br.qf.a[i]);
-          a.qfB[i] = animFlag(prevBr.qf.b[i], br.qf.b[i]);
-        }
-        for (i=0;i<2;i++){
-          a.sfA[i] = animFlag(prevBr.sf.a[i], br.sf.a[i]);
-          a.sfB[i] = animFlag(prevBr.sf.b[i], br.sf.b[i]);
-        }
-        a.fA = animFlag(prevBr.f.a[0], br.f.a[0]);
-        a.fB = animFlag(prevBr.f.b[0], br.f.b[0]);
-        a.champ = animFlag(prevBr.champ, br.champ);
-        return a;
-      }
-
-      function render(st, disableAnim){
-        var br = computeBracket(st);
-        var stageH = computeStageHeight();
-        elStage.style.height = stageH + "px";
-
-        /* Must read width after height applied (older browsers sometimes lag) */
-        var stageW = elStage.clientWidth;
-        if (!stageW || stageW < 800) stageW = 1600;
-
-        /* Compute X positions (symmetrical, converging to center) */
-        var X = computeXS(stageW).xs;
-
-        /* Seed centers for 8 players per side */
-        var seed = seedPlayerCenters(stageH);
-
-        /* Compute output centers (layout-only, independent of winners) */
-        var r16OutL = [];
-        var r16OutR = [];
-        var qfOutL = [];
-        var qfOutR = [];
-        var sfOutL = 0;
-        var sfOutR = 0;
-        var finalOut = 0;
-
-        var i;
-
-        for (i=0;i<4;i++){
-          r16OutL[i] = (seed[i*2] + seed[i*2+1]) / 2;
-          r16OutR[i] = (seed[i*2] + seed[i*2+1]) / 2;
-        }
-        for (i=0;i<2;i++){
-          qfOutL[i] = (r16OutL[i*2] + r16OutL[i*2+1]) / 2;
-          qfOutR[i] = (r16OutR[i*2] + r16OutR[i*2+1]) / 2;
-        }
-        sfOutL = (qfOutL[0] + qfOutL[1]) / 2;
-        sfOutR = (qfOutR[0] + qfOutR[1]) / 2;
-        finalOut = (sfOutL + sfOutR) / 2;
-
-        /* Anim targets */
-        var anim = disableAnim ? null : buildAnim(lastBracket, br);
-
-        /* Clear and render */
-        elStage.innerHTML = "";
-
-        /* LEFT side: r16(0..3), qf(0..1), sf(0) */
-        for (i=0;i<4;i++){
-          renderMatch(
-            elStage,
-            X.left.r16,
-            seed[i*2], seed[i*2+1],
-            br.r16.a[i], br.r16.b[i],
-            st.winners.r16[i],
-            st.times && st.times.r16 ? st.times.r16[i] : "",
-            false,
-            10,
-            null, null
-          );
-        }
-
-        for (i=0;i<2;i++){
-          renderMatch(
-            elStage,
-            X.left.qf,
-            r16OutL[i*2], r16OutL[i*2+1],
-            br.qf.a[i], br.qf.b[i],
-            st.winners.qf[i],
-            st.times && st.times.qf ? st.times.qf[i] : "",
-            false,
-            20,
-            (anim && anim.qfA[i]) ? "moveInL" : null,
-            (anim && anim.qfB[i]) ? "moveInL" : null
-          );
-        }
-
-        renderMatch(
-          elStage,
-          X.left.sf,
-          qfOutL[0], qfOutL[1],
-          br.sf.a[0], br.sf.b[0],
-          st.winners.sf[0],
-          st.times && st.times.sf ? st.times.sf[0] : "",
-          false,
-          30,
-          (anim && anim.sfA[0]) ? "moveInL" : null,
-          (anim && anim.sfB[0]) ? "moveInL" : null
-        );
-
-        /* RIGHT side: r16(4..7), qf(2..3), sf(1)  (mirrored direction) */
-        for (i=0;i<4;i++){
-          renderMatch(
-            elStage,
-            X.right.r16,
-            seed[i*2], seed[i*2+1],
-            br.r16.a[i+4], br.r16.b[i+4],
-            st.winners.r16[i+4],
-            st.times && st.times.r16 ? st.times.r16[i+4] : "",
-            true,
-            10,
-            null, null
-          );
-        }
-
-        for (i=0;i<2;i++){
-          var qfIdx = i + 2;
-          renderMatch(
-            elStage,
-            X.right.qf,
-            r16OutR[i*2], r16OutR[i*2+1],
-            br.qf.a[qfIdx], br.qf.b[qfIdx],
-            st.winners.qf[qfIdx],
-            st.times && st.times.qf ? st.times.qf[qfIdx] : "",
-            true,
-            20,
-            (anim && anim.qfA[qfIdx]) ? "moveInR" : null,
-            (anim && anim.qfB[qfIdx]) ? "moveInR" : null
-          );
-        }
-
-        renderMatch(
-          elStage,
-          X.right.sf,
-          qfOutR[0], qfOutR[1],
-          br.sf.a[1], br.sf.b[1],
-          st.winners.sf[1],
-          st.times && st.times.sf ? st.times.sf[1] : "",
-          true,
-          30,
-          (anim && anim.sfA[1]) ? "moveInR" : null,
-          (anim && anim.sfB[1]) ? "moveInR" : null
-        );
-
-        /* FINAL (center) */
-        renderMatch(
-          elStage,
-          X.final,
-          sfOutL, sfOutR,
-          br.f.a[0], br.f.b[0],
-          st.winners.f[0],
-          st.times && st.times.f ? st.times.f[0] : "",
-          false,
-          40,
-          (anim && anim.fA) ? "moveInL" : null,
-          (anim && anim.fB) ? "moveInR" : null
-        );
-
-        /* CHAMPION (centered on final output) */
-        var champ = document.createElement("div");
-        champ.className = "slot champ" + (br.champ ? " winPick" : "") + (br.champ ? "" : " empty");
-        if (anim && anim.champ) champ.className += " moveInL";
-
-        champ.innerHTML = esc(br.champ || "—");
-        champ.style.width = (CFG.COL_W) + "px";
-        champ.style.height = CFG.CHAMP_H + "px";
-        champ.style.left = X.final + "px";
-        champ.style.top = Math.floor(finalOut - CFG.CHAMP_H/2) + "px";
-        champ.style.zIndex = "50";
-        elStage.appendChild(champ);
-
-        elUpdated.innerHTML = st.updated_at ? ("Sist oppdatert: " + st.updated_at) : "—";
-
-        lastBracket = br;
-      }
-
-      function tick(){
-        xhrGet(CFG.API_GET, function(ok, res){
-          if (!ok || !res || !res.ok) return;
-          var st = safeState(res.state);
-
-          if (st.updated_at && st.updated_at === lastUpdated) return;
-
-          lastUpdated = st.updated_at || ("" + new Date().getTime());
-          lastState = st;
-          render(st, false);
-        });
-      }
-
-      function onResize(){
-        if (!lastState) return;
-        render(lastState, true);
-      }
-
-      tick();
-      setInterval(tick, CFG.POLL_MS);
-
-      if (window.addEventListener) window.addEventListener("resize", onResize, false);
-      else if (window.attachEvent) window.attachEvent("onresize", onResize);
-    })();
-  </script>
+        next();
+      }, function(){
+        next();
+      });
+    }
+
+    next();
+  }
+
+  function load(){
+    statusGlobal.innerHTML = "Laster…";
+    statusClass.innerHTML = "Laster…";
+
+    requestJson("/.netlify/functions/get-top-scores", function(data){
+      if (Object.prototype.toString.call(data) !== "[object Array]") data = [];
+      renderGlobal(data);
+
+      computeTopClasses(function(classStats){
+        renderClasses(classStats);
+      });
+    }, function(err){
+      statusGlobal.innerHTML = "FEIL";
+      statusClass.innerHTML = "FEIL";
+      showError(err);
+    });
+  }
+
+  load();
+})();
+</script>
 </body>
 </html>
