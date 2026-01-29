@@ -50,7 +50,6 @@
 
     .match{
       position:absolute;
-      width:240px;
       pointer-events:none;
     }
 
@@ -66,9 +65,8 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
-    .when.right{
-      text-align:right;
-    }
+    .when.right{ text-align:right; }
+    .when.center{ text-align:center; }
 
     .slot{
       position:absolute;
@@ -77,16 +75,20 @@
       border-radius:16px;
       background:#2a0a0d; /* very dark red bubble */
       border:3px solid rgba(214,31,38,.45); /* red borders */
-      font-size:26px;
       font-weight:900;
       line-height:1;
       display:flex;
       align-items:center;
+      box-shadow:0 16px 40px rgba(0,0,0,.40);
+      color:#f6f6f7;
+    }
+    .slotText{
+      flex:1 1 auto;
+      min-width:0; /* critical for right side flex + ellipsis + scrollWidth */
       overflow:hidden;
       text-overflow:ellipsis;
       white-space:nowrap;
-      box-shadow:0 16px 40px rgba(0,0,0,.40);
-      color:#f6f6f7;
+      display:block;
     }
     .slot.right{
       justify-content:flex-end;
@@ -142,14 +144,6 @@
       opacity:1;
     }
 
-    .champ{
-      position:absolute;
-      height:78px;
-      border-width:4px;
-      font-size:34px;
-      border-radius:18px;
-    }
-
     @keyframes moveIn {
       0%   { transform: translateX(-28px); opacity:0; }
       100% { transform: translateX(0); opacity:1; }
@@ -178,12 +172,19 @@
         API_GET: "/.netlify/functions/get-bracket",
         POLL_MS: 1500,
 
-        COL_W: 240,
-        SLOT_W: 220,
+        /* Slightly narrower */
+        COL_W: 220,
+        SLOT_W: 196,
         SLOT_H: 58,
-        CHAMP_H: 78,
 
-        STEP_DEFAULT: 260,
+        /* Side-by-side final */
+        FINAL_GAP: 26,
+
+        /* Font fitting */
+        SLOT_FS_BASE: 26,
+        SLOT_FS_MIN: 16,
+
+        STEP_DEFAULT: 250,
 
         PAD_TOP: 20,
         PAD_BOT: 20,
@@ -264,8 +265,7 @@
           r16: { a:[], b:[], wn:[] },
           qf:  { a:[], b:[], wn:[] },
           sf:  { a:[], b:[], wn:[] },
-          f:   { a:[], b:[], wn:[] },
-          champ: ""
+          f:   { a:[], b:[], wn:[] }
         };
 
         var i, a, b, w;
@@ -300,7 +300,6 @@
         w = st.winners.f[0];
         out.f.wn[0] = (w===0) ? a : ((w===1) ? b : "");
 
-        out.champ = out.f.wn[0] || "";
         return out;
       }
 
@@ -365,32 +364,20 @@
           final: centerX
         };
 
-        /* Final clamp (paranoia) */
         if (xs.left.r16 < minX) xs.left.r16 = minX;
         if (xs.right.r16 > maxX) xs.right.r16 = maxX;
 
         return { xs: xs, step: step };
       }
 
-      function mkSlot(text, isWinner, isRight, animClass){
-        var d = document.createElement("div");
-        var cls = "slot";
-        if (isRight) cls += " right";
-        if (!text) cls += " empty";
-        if (isWinner) cls += " winPick";
-        if (animClass) cls += " " + animClass;
-        d.className = cls;
-        d.innerHTML = esc(text || "—");
-        d.style.width = CFG.SLOT_W + "px";
-        d.style.height = CFG.SLOT_H + "px";
-        return d;
-      }
-
-      function mkWhen(text, isRight){
+      function mkWhen(text, align){
         var t = sTrim(text || "");
         if (!t) return null;
         var d = document.createElement("div");
-        d.className = "when" + (isRight ? " right" : "");
+        var cls = "when";
+        if (align === "right") cls += " right";
+        if (align === "center") cls += " center";
+        d.className = cls;
         d.innerHTML = esc(t);
         return d;
       }
@@ -401,6 +388,51 @@
         d.style.left = x + "px";
         d.style.top = y + "px";
         return d;
+      }
+
+      function mkSlot(text, isWinner, isRight, animClass){
+        var d = document.createElement("div");
+        var cls = "slot";
+        if (isRight) cls += " right";
+        if (!text) cls += " empty";
+        if (isWinner) cls += " winPick";
+        if (animClass) cls += " " + animClass;
+        d.className = cls;
+
+        var s = document.createElement("span");
+        s.className = "slotText";
+        s.innerHTML = esc(text || "—");
+        d.appendChild(s);
+
+        d.style.width = CFG.SLOT_W + "px";
+        d.style.height = CFG.SLOT_H + "px";
+        d.style.fontSize = CFG.SLOT_FS_BASE + "px";
+        return d;
+      }
+
+      function fitSlotFont(el){
+        if (!el) return;
+
+        var base = CFG.SLOT_FS_BASE;
+        var min = CFG.SLOT_FS_MIN;
+
+        var span = el.getElementsByTagName("span")[0];
+        if (!span) return;
+
+        el.style.fontSize = base + "px";
+
+        /* content width (clientWidth includes padding) */
+        var w = (el.clientWidth || 0) - 24;
+        if (w < 40) return;
+
+        var fs = base;
+        var sw = span.scrollWidth || 0;
+
+        while (fs > min && sw > w){
+          fs -= 1;
+          el.style.fontSize = fs + "px";
+          sw = span.scrollWidth || 0;
+        }
       }
 
       function renderMatch(stage, x, yA, yB, nameA, nameB, winnerSide, whenText, isRight, z, animA, animB){
@@ -426,7 +458,7 @@
 
         /* Hide time when decided */
         if (!decided) {
-          var w = mkWhen(whenText, isRight);
+          var w = mkWhen(whenText, isRight ? "right" : "left");
           if (w) m.appendChild(w);
         }
 
@@ -452,6 +484,68 @@
         m.appendChild(mkDot(outX, outY, (winnerSide !== null)));
 
         stage.appendChild(m);
+
+        fitSlotFont(a);
+        fitSlotFont(b);
+      }
+
+      /* Finalists side-by-side (no overlap), no champion bubble afterwards */
+      function renderFinalSideBySide(stage, xCenter, y, nameL, nameR, winnerSide, whenText, z, animL, animR){
+        var slotW = CFG.SLOT_W;
+        var slotH = CFG.SLOT_H;
+        var gap = CFG.FINAL_GAP;
+        var wFinal = slotW + gap + slotW;
+
+        var stageW = stage.clientWidth || 1600;
+        var minLeft = CFG.PAD_SIDE;
+        var maxLeft = stageW - wFinal - CFG.PAD_SIDE;
+        if (maxLeft < minLeft) {
+          minLeft = 0;
+          maxLeft = stageW - wFinal;
+          if (maxLeft < 0) maxLeft = 0;
+        }
+
+        var left = Math.floor(xCenter - wFinal/2);
+        if (left < minLeft) left = minLeft;
+        if (left > maxLeft) left = maxLeft;
+
+        var top = Math.floor(y - slotH/2);
+
+        var decided = (winnerSide !== null);
+
+        var m = document.createElement("div");
+        m.className = "match" + (decided ? " decided" : "");
+        m.style.left = left + "px";
+        m.style.top = top + "px";
+        m.style.width = wFinal + "px";
+        m.style.height = slotH + "px";
+        m.style.zIndex = String(z);
+
+        if (!decided) {
+          var w = mkWhen(whenText, "center");
+          if (w) m.appendChild(w);
+        }
+
+        var isWinL = (!decided) ? ((winnerSide === 0) && !!nameL) : false;
+        var isWinR = (!decided) ? ((winnerSide === 1) && !!nameR) : false;
+
+        var a = mkSlot(nameL, isWinL, false, animL);
+        var b = mkSlot(nameR, isWinR, true, animR);
+
+        a.style.left = "0px";
+        a.style.top = "0px";
+        b.style.left = (slotW + gap) + "px";
+        b.style.top = "0px";
+
+        m.appendChild(a);
+        m.appendChild(b);
+
+        m.appendChild(mkDot(Math.floor(wFinal/2 - 5), Math.floor(slotH/2 - 5), (winnerSide !== null)));
+
+        stage.appendChild(m);
+
+        fitSlotFont(a);
+        fitSlotFont(b);
       }
 
       function animFlag(prev, now){
@@ -464,8 +558,7 @@
         var a = {
           qfA:[false,false,false,false], qfB:[false,false,false,false],
           sfA:[false,false], sfB:[false,false],
-          fA:false, fB:false,
-          champ:false
+          fA:false, fB:false
         };
         if (!prevBr) return a;
 
@@ -480,7 +573,6 @@
         }
         a.fA = animFlag(prevBr.f.a[0], br.f.a[0]);
         a.fB = animFlag(prevBr.f.b[0], br.f.b[0]);
-        a.champ = animFlag(prevBr.champ, br.champ);
         return a;
       }
 
@@ -522,6 +614,7 @@
 
         elStage.innerHTML = "";
 
+        /* Left side: r16 indices 0..3 */
         for (i=0;i<4;i++){
           renderMatch(
             elStage,
@@ -536,6 +629,7 @@
           );
         }
 
+        /* Left side: qf indices 0..1 */
         for (i=0;i<2;i++){
           renderMatch(
             elStage,
@@ -551,6 +645,7 @@
           );
         }
 
+        /* Left side: sf index 0 */
         renderMatch(
           elStage,
           X.left.sf,
@@ -564,6 +659,7 @@
           (anim && anim.sfB[0]) ? "moveInL" : null
         );
 
+        /* Right side: r16 indices 4..7 */
         for (i=0;i<4;i++){
           renderMatch(
             elStage,
@@ -578,6 +674,7 @@
           );
         }
 
+        /* Right side: qf indices 2..3 */
         for (i=0;i<2;i++){
           var qfIdx = i + 2;
           renderMatch(
@@ -594,6 +691,7 @@
           );
         }
 
+        /* Right side: sf index 1 */
         renderMatch(
           elStage,
           X.right.sf,
@@ -607,30 +705,19 @@
           (anim && anim.sfB[1]) ? "moveInR" : null
         );
 
-        renderMatch(
+        /* Final: side-by-side at center */
+        var xCenterFinal = X.final + Math.floor(CFG.COL_W/2);
+        renderFinalSideBySide(
           elStage,
-          X.final,
-          sfOutL, sfOutR,
+          xCenterFinal,
+          finalOut,
           br.f.a[0], br.f.b[0],
           st.winners.f[0],
           st.times && st.times.f ? st.times.f[0] : "",
-          false,
           40,
           (anim && anim.fA) ? "moveInL" : null,
           (anim && anim.fB) ? "moveInR" : null
         );
-
-        var champ = document.createElement("div");
-        champ.className = "slot champ" + (br.champ ? " winPick" : "") + (br.champ ? "" : " empty");
-        if (anim && anim.champ) champ.className += " moveInL";
-
-        champ.innerHTML = esc(br.champ || "—");
-        champ.style.width = (CFG.COL_W) + "px";
-        champ.style.height = CFG.CHAMP_H + "px";
-        champ.style.left = X.final + "px";
-        champ.style.top = Math.floor(finalOut - CFG.CHAMP_H/2) + "px";
-        champ.style.zIndex = "50";
-        elStage.appendChild(champ);
 
         elUpdated.innerHTML = st.updated_at ? ("Sist oppdatert: " + st.updated_at) : "—";
 
